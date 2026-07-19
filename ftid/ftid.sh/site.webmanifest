@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="">
+
+    <title>  Not Found</title>
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="https://ftid.sh/assets/css/normalize.min.css">
+    <link rel="stylesheet" href="https://ftid.sh/assets/css/apexcharts.min.css">
+	
+	<link rel="stylesheet" href="https://ftid.sh/assets/css/iziModal.min.css">
+	<link rel="stylesheet" href="https://ftid.sh/assets/css/editor.min.css">
+	<link rel="stylesheet" href="https://ftid.sh/assets/css/global.min.css">
+	  
+	  <style>
+	  :root {
+ 
+ --container-width:960px;
+
+
+}
+</style>
+	  
+	
+	<link rel="stylesheet" href="https://ftid.sh/assets/css/responsive.min.css">
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+	 <script src="https://ftid.sh/assets/js/iziModal.min.js"></script>
+	 <script src="https://ftid.sh/assets/js/general.js"></script>
+  
+    <link rel="manifest" href="/site.webmanifest">
+    
+	
+</head>
+<body class="bg_primary color_primary admin_page">
+   
+  
+
+ <div class="button_solid p_1 align_center weight_semibold no_hover none" data-aos="fade-down">test</div>
+
+
+
+
+	
+	<div class="bg_tertiary">
+	<div class="align_center pt_2 pb_2">
+	Our new Telegram account for support is @sh_ftid / Join our new update channel by clicking <a href="https://t.me/+_K7FLYiIzP41MzJi">here</a>
+</div>
+</div>
+
+
+
+<div class="background_main" id="background_main">
+
+<header class="pt_8 pb_8 pl_4 pr_4" data-aos="fade-down">
+  <div class="
+    		container  
+	  	  flex_container 
+	  
+	  	  
+	  flex_persistent">
+     <a href="https://ftid.sh" class="logo text_4xlarge weight_bold transform_uppercase">
+	 <span class="inline_block vmiddle color_secondary">FTID</span><span class="inline_block vmiddle stroked_text">.SH</span>
+	 
+	 </a>
+     <nav class="navigation flex_full pl_4 ml_4" id="nav_menu" data-extra-classes="dropdown_menu menu z_index none align_left position_absolute radius_medium bg_tertiary p_2">
+       
+     </nav>
+	
+	     
+	 
+     <div class="welcomeblock align_right">
+                 <a href="https://ftid.sh/login" class="button pl_4 pr_4  pt_2 pb_2  m_1 radius_large button_solid"><i class='bx bxs-exit none'></i><span>Sign In</span></a>
+            <a href="https://ftid.sh/register" class="button pl_4 pr_4  pt_2 pb_2  m_1 radius_large button_outlined"><i class='bx bxs-user-plus none'></i><span class="theme_text_gradient">Sign Up</span></a>
+        				
+     
+          
+		   
+		    		        </div>
+  </div>
+
+
+
+</header>
+
+ <section>
+  
+	   
+            <div class="container_small p_4 bg_secondary radius_medium mt_12 mb_12">
+	     <div class="text_large mb_4">404</div>
+		 Not Found	     
+	  
+       </div>
+
+
+ </section>
+ <footer data-aos="fade-down">
+   <div class="
+      		container  
+	     pt_6 pb_6">
+       
+         <div class="align_center" >
+           <span class="text_large logo  theme_text_gradient weight_semibold">FTID.SH</span>
+         </div>
+     
+      <div class="text_small align_center">
+       FTID.SH  &copy All rights reserved.
+      </div>
+</footer>
+
+
+</body>
+
+</html>

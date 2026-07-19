@@ -1,0 +1,21 @@
+/* Cleared default Vite styles */
+
+@media (max-width: 900px) {
+  .dashboard-container {
+    flex-direction: column !important;
+  }
+  .dashboard-sidebar {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid #2a2a2a !important;
+    height: auto !important;
+  }
+  .dashboard-topbar {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 15px !important;
+  }
+  .dashboard-content {
+    padding: 20px !important;
+  }
+}
