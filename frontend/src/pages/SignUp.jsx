@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import API_BASE_URL from '../config';
 
 const LoadingCaptcha = ({ onVerify }) => {
   const [status, setStatus] = useState('idle'); // idle, loading, success
@@ -84,7 +85,7 @@ export default function SignUp() {
     }
     
     try {
-      const res = await fetch('http://localhost:5000/api/register', {
+      const res = await fetch(`${API_BASE_URL}/api/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

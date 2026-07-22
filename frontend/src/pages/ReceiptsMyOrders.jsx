@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import PaymentModal from '../components/PaymentModal';
+import API_BASE_URL from '../config';
 
 export default function ReceiptsMyOrders() {
   const [orders, setOrders] = useState([]);
@@ -10,7 +11,7 @@ export default function ReceiptsMyOrders() {
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
     if (user) {
-      fetch(`http://localhost:5000/api/orders/${user.id}`)
+      fetch(`${API_BASE_URL}/api/orders/${user.id}`)
         .then(res => res.json())
         .then(data => {
           const receiptOrders = data.filter(o => o.type === 'Receipt');

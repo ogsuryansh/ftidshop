@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import API_BASE_URL from '../config';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -28,8 +29,8 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     try {
       const [uRes, oRes] = await Promise.all([
-        fetch('http://localhost:5000/api/admin/users'),
-        fetch('http://localhost:5000/api/admin/orders')
+        fetch(`${API_BASE_URL}/api/admin/users`),
+        fetch(`${API_BASE_URL}/api/admin/orders`)
       ]);
       const uData = await uRes.json();
       const oData = await oRes.json();
@@ -42,7 +43,7 @@ export default function AdminDashboard() {
 
   const handleStatusChange = async (orderId, updateObj) => {
     try {
-      await fetch(`http://localhost:5000/api/admin/order/${orderId}/status`, {
+      await fetch(`${API_BASE_URL}/api/admin/order/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateObj)

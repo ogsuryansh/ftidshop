@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import PaymentModal from '../components/PaymentModal';
+import API_BASE_URL from '../config';
 
 export default function FtidSubmitOrder() {
   const [country, setCountry] = useState('');
@@ -49,7 +50,7 @@ export default function FtidSubmitOrder() {
     setSubmitting(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/orders', {
+      const res = await fetch(`${API_BASE_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
