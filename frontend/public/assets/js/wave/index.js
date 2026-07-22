@@ -13,13 +13,17 @@ var mouseX = 0,
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
 
-init();
-animate();
+if (document.getElementById('wave')) {
+    init();
+    animate();
+}
 
 function init() {
+    var waveEl = document.getElementById('wave');
+    if (!waveEl) return;
     container = document.createElement('div');
     container.className = "wave-position";
-    document.getElementById('wave').append(container);
+    waveEl.append(container);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
     camera.position.z = 10000;

@@ -1,6 +1,6 @@
 var circles = [],
     canvas = document.getElementById("bg_canvas"),
-    context = canvas.getContext("2d"),
+    context = canvas ? canvas.getContext("2d") : null,
 
     // SETTINGS 
     opacity = 1, // the opacity of the circles 0 to 1
@@ -127,6 +127,7 @@ function bly_animate() {
 }
 window.onload = function() {
     'use strict';
+    if (!canvas) return;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     buildArray();

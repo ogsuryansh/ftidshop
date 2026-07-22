@@ -79,8 +79,10 @@ export default function DashboardLayout() {
 
         <div style={{ padding: '20px 40px', flex: 1, boxSizing: 'border-box' }} className="bg_primary dashboard-content">
             {/* Banner */}
-            <div style={{ backgroundColor: '#5cb85c', padding: '15px 20px', borderRadius: '8px', color: '#fff', marginBottom: '30px', fontSize: '14px' }}>
-                Our new Telegram account for support is @support / Join our new update channel by clicking <a href="https://t.me/+_K7FLYiIzP41MzJi" style={{ color: '#fff', textDecoration: 'underline' }}>here</a>
+            <div style={{ backgroundColor: '#1c1e1f', padding: '8px 0', borderRadius: '8px', marginBottom: '30px', overflow: 'hidden', border: '1px solid #2a2a2a' }}>
+                <marquee scrollamount="5" style={{ fontSize: '15px', fontWeight: '500', letterSpacing: '0.5px', color: '#ff4d4d' }}>
+                    ⚠️ <strong style={{ color: '#ff4d4d' }}>NOTICE:</strong> Our new Telegram account for support is <strong>@support</strong> &nbsp;|&nbsp; Join our new update channel by clicking <a href="https://t.me/+_K7FLYiIzP41MzJi" style={{ color: '#ff4d4d', textDecoration: 'underline' }}>here</a>
+                </marquee>
             </div>
 
             <Outlet />

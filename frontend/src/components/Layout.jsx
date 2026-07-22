@@ -4,10 +4,10 @@ import { Link, Outlet } from 'react-router-dom';
 export default function Layout() {
   return (
     <>
-      <div className="bg_tertiary">
-          <div className="align_center pt_2 pb_2">
-              Our new Telegram account for support is @support / Join our new update channel by clicking <a href="https://t.me/+_K7FLYiIzP41MzJi">here</a>
-          </div>
+      <div className="bg_tertiary" style={{ padding: '8px 0', borderBottom: '1px solid #2a2a2a', overflow: 'hidden' }}>
+          <marquee scrollamount="5" style={{ fontSize: '15px', fontWeight: '500', letterSpacing: '0.5px', color: '#ff4d4d' }}>
+              ⚠️ <strong style={{ color: '#ff4d4d' }}>NOTICE:</strong> Our new Telegram account for support is <strong>@support</strong> &nbsp;|&nbsp; Join our new update channel by clicking <a href="https://t.me/+_K7FLYiIzP41MzJi" style={{ color: '#ff4d4d', textDecoration: 'underline' }}>here</a>
+          </marquee>
       </div>
 
       <header className="pt_8 pb_8 pl_4 pr_4">

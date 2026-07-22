@@ -10,6 +10,8 @@ import FtidSubmitOrder from './pages/FtidSubmitOrder';
 import FtidMyOrders from './pages/FtidMyOrders';
 import ReceiptsSubmitOrder from './pages/ReceiptsSubmitOrder';
 import ReceiptsMyOrders from './pages/ReceiptsMyOrders';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
 
 function App() {
@@ -53,6 +55,12 @@ function App() {
             <Route path="receipts/submit" element={<ReceiptsSubmitOrder />} />
             <Route path="receipts/orders" element={<ReceiptsMyOrders />} />
           </Route>
+
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<Layout />}>
+             <Route index element={<AdminLogin />} />
+          </Route>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
         </Routes>
       </BrowserRouter>
     </>
