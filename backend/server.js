@@ -10,6 +10,14 @@ require('dotenv').config();
 const User = require('./models/User');
 const Admin = require('./models/Admin');
 const Order = require('./models/Order');
+const { verifyPayment } = require('./services/cryptoVerifier');
+
+// ─── Wallet addresses (set in .env) ──────────────────────────────────────────
+const WALLET_ADDRESSES = {
+    USDT_TRC20: process.env.WALLET_USDT_TRC20 || '',
+    BTC:        process.env.WALLET_BTC        || '',
+    TON:        process.env.WALLET_TON        || ''
+};
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -137,7 +145,13 @@ app.put('/api/admin/order/:id/status', async (req, res) => {
 // User Order endpoints
 app.post('/api/orders', async (req, res) => {
     try {
-        const newOrder = new Order(req.body);
+        const { paymentCurrency } = req.body;
+        const orderData = { ...req.body };
+        // Attach the real wallet address for the chosen currency
+        if (paymentCurrency && WALLET_ADDRESSES[paymentCurrency]) {
+            orderData.paymentAddress = WALLET_ADDRESSES[paymentCurrency];
+        }
+        const newOrder = new Order(orderData);
         await newOrder.save();
         res.json(newOrder);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
@@ -149,6 +163,99 @@ app.get('/api/orders/:userId', async (req, res) => {
         res.json(orders);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
+
+// ─── Payment verification endpoints ──────────────────────────────────────────
+
+// GET wallet address for selected currency
+app.get('/api/payment/address/:currency', (req, res) => {
+    const { currency } = req.params;
+    const address = WALLET_ADDRESSES[currency];
+    if (!address) return res.status(404).json({ error: 'Currency not supported or wallet not configured' });
+    res.json({ currency, address });
+});
+
+// Manually trigger payment check for a specific order
+app.post('/api/verify-payment/:orderId', async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.orderId);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        if (order.paymentStatus === 'Paid') return res.json({ verified: true, order });
+        if (!order.paymentCurrency || !order.paymentAddress) {
+            return res.status(400).json({ error: 'Order has no payment currency/address set' });
+        }
+
+        const result = await verifyPayment(order.paymentCurrency, order.paymentAddress, order.price);
+        
+        await Order.findByIdAndUpdate(order._id, {
+            $inc: { verificationAttempts: 1 },
+            lastChecked: new Date()
+        });
+
+        if (result.verified) {
+            const updated = await Order.findByIdAndUpdate(
+                order._id,
+                { paymentStatus: 'Paid', status: 'Pending', txHash: result.txHash },
+                { new: true }
+            );
+            return res.json({ verified: true, order: updated, txHash: result.txHash });
+        }
+
+        res.json({ verified: false, order, message: 'Payment not detected yet' });
+    } catch (err) {
+        console.error('[VerifyPayment]', err);
+        res.status(500).json({ error: 'Verification error' });
+    }
+});
+
+// Get payment status for an order
+app.get('/api/payment-status/:orderId', async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.orderId).select('paymentStatus status txHash paymentCurrency paymentAddress price');
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        res.json(order);
+    } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// ─── Background auto-polling job (every 60 seconds) ──────────────────────────
+async function runPaymentPoller() {
+    try {
+        if (!isConnected) return;
+        const pendingOrders = await Order.find({
+            paymentStatus: 'Pending Payment',
+            paymentCurrency: { $ne: null },
+            paymentAddress: { $ne: null },
+            verificationAttempts: { $lt: 30 } // stop after 30 attempts (~30 min)
+        });
+
+        if (pendingOrders.length === 0) return;
+        console.log(`[Poller] Checking ${pendingOrders.length} pending payment(s)...`);
+
+        for (const order of pendingOrders) {
+            const result = await verifyPayment(order.paymentCurrency, order.paymentAddress, order.price);
+            await Order.findByIdAndUpdate(order._id, {
+                $inc: { verificationAttempts: 1 },
+                lastChecked: new Date()
+            });
+
+            if (result.verified) {
+                await Order.findByIdAndUpdate(order._id, {
+                    paymentStatus: 'Paid',
+                    status: 'Pending',
+                    txHash: result.txHash
+                });
+                console.log(`[Poller] ✅ Payment confirmed for order ${order._id} | TX: ${result.txHash}`);
+            }
+        }
+    } catch (err) {
+        console.error('[Poller] Error:', err.message);
+    }
+}
+
+// Start polling only in non-serverless environments
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    setInterval(runPaymentPoller, 60 * 1000); // every 60 seconds
+    console.log('[Poller] Payment auto-verification job started (60s interval)');
+}
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     app.listen(PORT, () => { console.log(`Server running on http://localhost:${PORT}`); });
