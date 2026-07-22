@@ -14,7 +14,7 @@ export default function DashboardLayout() {
         
         <div>
           <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '15px', color: '#fff' }}>My account</div>
-          <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#c38d5e', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
+          <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#00f2fe', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
             <i className='bx bxs-grid-alt'></i> Profile settings
           </Link>
         </div>

@@ -13,14 +13,19 @@ var mouseX = 0,
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
 
-if (document.getElementById('wave')) {
+window.initWave = function() {
     init();
     animate();
+};
+
+if (document.getElementById('wave')) {
+    window.initWave();
 }
 
 function init() {
     var waveEl = document.getElementById('wave');
     if (!waveEl) return;
+    waveEl.innerHTML = '';
     container = document.createElement('div');
     container.className = "wave-position";
     waveEl.append(container);
@@ -34,7 +39,7 @@ function init() {
 
     var PI2 = Math.PI * 2;
     var material = new THREE.SpriteCanvasMaterial({
-        color: 0xfe7a00,
+        color: 0x00f2fe,
         program: function(context) {
             context.beginPath();
             context.arc(0.9, 0, 0.5, 0, PI2, true);
@@ -55,9 +60,9 @@ function init() {
 
     renderer = new THREE.CanvasRenderer();
     renderer.setPixelRatio(window.devicePixelRatio);
-    var heroContainer = document.getElementById('background_main');
-    var canvasWidth = heroContainer.clientWidth;
-    var canvasHeight = heroContainer.clientHeight;
+    var heroContainer = document.getElementById('background_main') || waveEl;
+    var canvasWidth = heroContainer.clientWidth || window.innerWidth;
+    var canvasHeight = heroContainer.clientHeight || 500;
     renderer.setSize(canvasWidth, canvasHeight);
     container.appendChild(renderer.domElement);
 

@@ -4,9 +4,9 @@ var circles = [],
 
     // SETTINGS 
     opacity = 1, // the opacity of the circles 0 to 1
-    colors = ['#fe7600', // an array of rgb colors for the circles
-        '#fe7600',
-        '#fe7600'
+    colors = ['#00f2fe', // an array of rgb colors for the circles
+        '#7f00ff',
+        '#4facfe'
     ],
     minSize = 0.5, // the minimum size of the circles in px
     maxSize = 1, // the maximum size of the circles in px

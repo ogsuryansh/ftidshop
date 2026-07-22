@@ -1,18 +1,24 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 export default function Home() {
+  useEffect(() => {
+    if (typeof window.initWave === 'function') {
+      window.initWave();
+    }
+  }, []);
+
   return (
     <>
-      <div id="wave" className="hero_canvas"></div>
       <div className="background_main" id="background_main">
-          <section className="hero position_relative px_5 pt_12 pb_12 pl_4 pr_4">
+          <div id="wave" className="hero_canvas"></div>
+          <section className="hero position_relative px_5 pt_12 pb_12 pl_4 pr_4" style={{ position: 'relative', zIndex: 2 }}>
               <div className="container flex_container items_center">
                   <div data-width="50%">
                       <div className="text_2xlarge weight_semibold mb_4 color_secondary">The #1 Global service <span className="theme_text_gradient">FTID.SHOP</span></div>
                       <div className="mb_8 color_neutral">Welcome to FTID.SHOP, the #1 global service, offering a large variety of options. The fastest delivery possible, with utmost care and precision, at all times.</div>
                   </div>
                   <div data-width="50%" className="hero_container align_center">
-                      <img className="hero_image circle img_1" src="/assets/images/hero.png" alt="Hero" />
+                      <img className="hero_image" src="/assets/images/hero.png" alt="Hero" />
                   </div>
               </div>
           </section>

@@ -2,23 +2,41 @@ import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
 export default function Layout() {
+  const token = localStorage.getItem('token');
+  const userStr = localStorage.getItem('user');
+  const isLoggedIn = !!(token || userStr);
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
   return (
     <>
-      <div className="bg_tertiary" style={{ padding: '8px 0', borderBottom: '1px solid #2a2a2a', overflow: 'hidden' }}>
-          <marquee scrollamount="5" style={{ fontSize: '15px', fontWeight: '500', letterSpacing: '0.5px', color: '#ff4d4d' }}>
-              ⚠️ <strong style={{ color: '#ff4d4d' }}>NOTICE:</strong> Our new Telegram account for support is <strong>@support</strong> &nbsp;|&nbsp; Join our new update channel by clicking <a href="https://t.me/+_K7FLYiIzP41MzJi" style={{ color: '#ff4d4d', textDecoration: 'underline' }}>here</a>
-          </marquee>
+      <div className="bg_tertiary">
+          <div className="align_center pt_2 pb_2">
+              Our new Telegram account for support is @support / Join our new update channel by clicking <a href="https://t.me/+_K7FLYiIzP41MzJi">here</a>
+          </div>
       </div>
 
-      <header className="pt_8 pb_8 pl_4 pr_4">
-          <div className="container flex_container flex_persistent">
-              <Link to="/" className="logo text_4xlarge weight_bold transform_uppercase">
+      <header className="pt_8 pb_8 pl_4 pr_4" style={{ position: 'relative', zIndex: 100 }}>
+          <div className="container flex_container flex_persistent items_center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <Link to="/" className="logo text_4xlarge weight_bold transform_uppercase" style={{ textDecoration: 'none' }}>
                   <span className="inline_block vmiddle color_secondary">FTID</span><span className="inline_block vmiddle stroked_text">.SHOP</span>
               </Link>
-              <nav className="navigation flex_full pl_4 ml_4"></nav>
-              <div className="welcomeblock align_right">
-                  <Link to="/login" className="button pl_4 pr_4 pt_2 pb_2 m_1 radius_large button_solid"><span>Sign In</span></Link>
-                  <Link to="/register" className="button pl_4 pr_4 pt_2 pb_2 m_1 radius_large button_outlined"><span className="theme_text_gradient">Sign Up</span></Link>
+              <div className="welcomeblock" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  {isLoggedIn ? (
+                    <>
+                      <Link to="/dashboard" className="button pl_4 pr_4 pt_2 pb_2 m_1 radius_large button_solid"><span>Dashboard</span></Link>
+                      <button onClick={handleSignOut} className="button pl_4 pr_4 pt_2 pb_2 m_1 radius_large button_outlined" style={{ cursor: 'pointer', background: 'transparent' }}><span className="theme_text_gradient">Sign Out</span></button>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/login" className="button pl_4 pr_4 pt_2 pb_2 m_1 radius_large button_solid"><span>Sign In</span></Link>
+                      <Link to="/register" className="button pl_4 pr_4 pt_2 pb_2 m_1 radius_large button_outlined"><span className="theme_text_gradient">Sign Up</span></Link>
+                    </>
+                  )}
               </div>
           </div>
       </header>

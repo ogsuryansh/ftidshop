@@ -13,7 +13,7 @@ export default function Dashboard() {
         <h2 style={{ fontSize: '22px', marginBottom: '30px', fontWeight: '500', color: '#fff' }}>Profile overview</h2>
         
         <div style={{ display: 'flex', gap: '30px', marginBottom: '40px' }}>
-            <div style={{ color: '#c38d5e', cursor: 'pointer', fontSize: '14px' }}>Profile settings</div>
+            <div style={{ color: '#00f2fe', cursor: 'pointer', fontSize: '14px' }}>Profile settings</div>
             <div style={{ color: '#999', cursor: 'pointer', fontSize: '14px' }}>Change password</div>
             <div style={{ color: '#999', cursor: 'pointer', fontSize: '14px' }}>Change email</div>
             <div style={{ color: '#999', cursor: 'pointer', fontSize: '14px' }}>2FA</div>

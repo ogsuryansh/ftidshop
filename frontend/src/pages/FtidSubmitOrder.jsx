@@ -150,7 +150,7 @@ export default function FtidSubmitOrder() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <button type="submit" disabled={submitting} style={{ backgroundColor: '#ff8c00', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: submitting ? 0.7 : 1 }}>
+          <button type="submit" disabled={submitting} style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: submitting ? 0.7 : 1 }}>
             {submitting ? 'Submitting...' : 'Create Order & Pay'}
           </button>
         </div>

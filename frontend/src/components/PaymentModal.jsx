@@ -37,11 +37,11 @@ export default function PaymentModal({ order, onClose }) {
         </button>
 
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(255,140,0,0.15)', color: '#ff8c00', fontSize: '26px', marginBottom: '10px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'rgba(0, 242, 254, 0.15)', color: '#00f2fe', fontSize: '26px', marginBottom: '10px' }}>
             💳
           </div>
           <h3 style={{ margin: '0 0 5px 0', fontSize: '20px', fontWeight: '600' }}>Complete Your Payment</h3>
-          <span style={{ backgroundColor: '#ff9800', color: '#000', padding: '3px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
+          <span style={{ background: 'linear-gradient(90deg, #00f2fe, #7f00ff)', color: '#fff', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
             Status: {order.status || order.paymentStatus || 'Pending Payment'}
           </span>
         </div>
@@ -59,7 +59,7 @@ export default function PaymentModal({ order, onClose }) {
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #282a2c', paddingTop: '8px', marginTop: '8px' }}>
             <span style={{ color: '#aaa', fontWeight: '600' }}>Total Amount Due:</span>
-            <span style={{ color: '#4caf50', fontSize: '18px', fontWeight: 'bold' }}>${order.price || 0} USD</span>
+            <span style={{ color: '#00f2fe', fontSize: '18px', fontWeight: 'bold' }}>${order.price || 0} USD</span>
           </div>
         </div>
 
@@ -71,8 +71,8 @@ export default function PaymentModal({ order, onClose }) {
               onClick={() => setSelectedCrypto('USDT_TRC20')}
               style={{
                 flex: 1, padding: '10px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold',
-                backgroundColor: selectedCrypto === 'USDT_TRC20' ? '#ff8c00' : '#282a2c',
-                color: selectedCrypto === 'USDT_TRC20' ? '#fff' : '#ccc',
+                background: selectedCrypto === 'USDT_TRC20' ? 'linear-gradient(135deg, #00f2fe, #7f00ff)' : '#282a2c',
+                color: '#fff',
                 border: 'none', transition: 'all 0.2s'
               }}
             >
@@ -83,8 +83,8 @@ export default function PaymentModal({ order, onClose }) {
               onClick={() => setSelectedCrypto('BTC')}
               style={{
                 flex: 1, padding: '10px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold',
-                backgroundColor: selectedCrypto === 'BTC' ? '#ff8c00' : '#282a2c',
-                color: selectedCrypto === 'BTC' ? '#fff' : '#ccc',
+                background: selectedCrypto === 'BTC' ? 'linear-gradient(135deg, #00f2fe, #7f00ff)' : '#282a2c',
+                color: '#fff',
                 border: 'none', transition: 'all 0.2s'
               }}
             >
@@ -95,8 +95,8 @@ export default function PaymentModal({ order, onClose }) {
               onClick={() => setSelectedCrypto('TON')}
               style={{
                 flex: 1, padding: '10px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold',
-                backgroundColor: selectedCrypto === 'TON' ? '#ff8c00' : '#282a2c',
-                color: selectedCrypto === 'TON' ? '#fff' : '#ccc',
+                background: selectedCrypto === 'TON' ? 'linear-gradient(135deg, #00f2fe, #7f00ff)' : '#282a2c',
+                color: '#fff',
                 border: 'none', transition: 'all 0.2s'
               }}
             >
@@ -114,12 +114,12 @@ export default function PaymentModal({ order, onClose }) {
               type="text" 
               readOnly 
               value={cryptoAddresses[selectedCrypto]} 
-              style={{ flex: 1, backgroundColor: '#0c0d0e', border: '1px solid #333', color: '#4caf50', padding: '10px', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', outline: 'none' }}
+              style={{ flex: 1, backgroundColor: '#0c0d0e', border: '1px solid #333', color: '#00f2fe', padding: '10px', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', outline: 'none' }}
             />
             <button
               type="button"
               onClick={() => handleCopy(cryptoAddresses[selectedCrypto], selectedCrypto)}
-              style={{ backgroundColor: '#28a745', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+              style={{ background: 'linear-gradient(135deg, #00f2fe, #7f00ff)', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
             >
               {copied === selectedCrypto ? 'Copied!' : 'Copy'}
             </button>
@@ -134,7 +134,7 @@ export default function PaymentModal({ order, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            style={{ flex: 1, backgroundColor: '#ff8c00', color: '#fff', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+            style={{ flex: 1, background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
           >
             I Have Sent Payment
           </button>

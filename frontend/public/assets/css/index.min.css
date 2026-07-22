@@ -55,18 +55,18 @@ body {
 .cube_count_1 {
     z-index: 2;
     left: 50px;
-    animation: cube 2s ease infinite;
+    animation: cube 2s 1s ease infinite;
 }
 
 .cube_count_1 .cube__face {
-    animation-delay: 0s;
+    animation-delay: 1s;
 }
 
 .cube__face {
     width: 100px;
     height: 100px;
     position: absolute;
-    background: #c38d5e;
+    background: linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%);
     background-size: 60px auto;
     background-position: center center;
     background-repeat: no-repeat;
@@ -78,9 +78,11 @@ body {
 
 .cube__face::after {
     content: "FTID";
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 800;
     color: #141617;
+    font-family: 'Poppins', sans-serif;
+    letter-spacing: 2px;
 }
 
 .cube__face--front {

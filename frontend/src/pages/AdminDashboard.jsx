@@ -92,16 +92,16 @@ export default function AdminDashboard() {
 
         <div>
           <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '15px', color: '#fff' }}>Menu</div>
-          <button onClick={() => { setCurrentView('dashboard'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'dashboard' ? '#c38d5e' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+          <button onClick={() => { setCurrentView('dashboard'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'dashboard' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <i className='bx bxs-dashboard'></i> Dashboard Overview
           </button>
-          <button onClick={() => { setCurrentView('transactions'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'transactions' ? '#c38d5e' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+          <button onClick={() => { setCurrentView('transactions'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'transactions' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <i className='bx bx-money'></i> Manage Transactions
           </button>
-          <button onClick={() => { setCurrentView('orders'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'orders' ? '#c38d5e' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+          <button onClick={() => { setCurrentView('orders'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'orders' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <i className='bx bx-cart'></i> Manage Orders
           </button>
-          <button onClick={() => { setCurrentView('users'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'users' ? '#c38d5e' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+          <button onClick={() => { setCurrentView('users'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'users' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <i className='bx bx-user'></i> Manage Users
           </button>
         </div>

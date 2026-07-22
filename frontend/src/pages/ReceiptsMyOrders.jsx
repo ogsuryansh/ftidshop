@@ -76,7 +76,7 @@ export default function ReceiptsMyOrders() {
                     {order.status === 'Pending Payment' && (
                       <button 
                         onClick={() => setSelectedPaymentOrder(order)} 
-                        style={{ backgroundColor: '#ff8c00', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                        style={{ background: 'linear-gradient(135deg, #00f2fe, #7f00ff)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                       >
                         Pay Now
                       </button>
