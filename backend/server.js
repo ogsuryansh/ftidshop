@@ -18,37 +18,35 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI)
-.then(async () => {
-    console.log('MongoDB Connected to Atlas...');
-    const adminCount = await Admin.countDocuments();
-    if (adminCount === 0) {
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash('admin123', salt);
-        const newAdmin = new Admin({ username: 'admin', password: hashedPassword });
-        await newAdmin.save();
-        console.log('Default admin created: username (admin) password (admin123)');
+// Connect to MongoDB Atlas (Serverless compatible)
+let isConnected = false;
+const connectDB = async () => {
+    if (isConnected || mongoose.connection.readyState >= 1) {
+        isConnected = true;
+        return;
     }
-
-    // Create dummy orders if none exist
-    const orderCount = await Order.countDocuments();
-    if (orderCount === 0) {
-        // Create a dummy user first
-        const dummyUser = new User({ name: 'John Doe', email: 'john.doe@example.com', password: 'password123', credits: 150 });
-        await dummyUser.save();
-
-        const dummyOrders = [
-            { userId: dummyUser._id, type: 'FTID', country: 'US', courier: 'UPS', method: 'AMAZON (FTID V6)', trackingNumber: '1Z9999999999999999', note: 'Please process ASAP', price: 45, status: 'Pending' },
-            { userId: dummyUser._id, type: 'FTID', country: 'UK', courier: 'Royal Mail', method: 'UPS RTS', trackingNumber: 'GB123456789', note: 'RTS requested', price: 55, status: 'Processing' },
-            { userId: dummyUser._id, type: 'Receipt', country: 'Canada', courier: 'FedEx', method: 'AP LIT WORLDWIDE', trackingNumber: 'FDX987654321', note: 'Receipt for electronics', price: 20, status: 'Completed' }
-        ];
-
-        await Order.insertMany(dummyOrders);
-        console.log('Dummy orders created successfully');
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        isConnected = true;
+        console.log('MongoDB Connected to Atlas...');
+        
+        const adminCount = await Admin.countDocuments();
+        if (adminCount === 0) {
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('admin123', salt);
+            const newAdmin = new Admin({ username: 'admin', password: hashedPassword });
+            await newAdmin.save();
+            console.log('Default admin created: username (admin) password (admin123)');
+        }
+    } catch (err) {
+        console.error('MongoDB connection error:', err);
     }
-})
-.catch(err => console.log('MongoDB connection error:', err));
+};
+
+app.use(async (req, res, next) => {
+    await connectDB();
+    next();
+});
 
 app.post('/api/register', async (req, res) => {
     const { name, email, password, captchaToken } = req.body;
