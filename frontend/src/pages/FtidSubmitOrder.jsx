@@ -39,7 +39,7 @@ export default function FtidSubmitOrder() {
     }
 
     const methodPrices = {
-      'FTIDV3': 10,
+      'FTIDV3': 0.01,
       'Drop only': 5,
       'LIT (Ground Express Only)': 20,
       'FTIDNA [Only tracking number needed]': 30,
@@ -103,7 +103,7 @@ export default function FtidSubmitOrder() {
             
             <label style={{ color: '#ccc', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', cursor: 'pointer' }}>
               <input type="radio" name="method" value="FTIDV3" checked={method === 'FTIDV3'} onChange={e => setMethod(e.target.value)} required /> 
-              FTIDV3 <strong style={{ color: '#4caf50' }}>10$</strong> <span style={{ color: '#4caf50', marginLeft: '5px' }}>Label is required</span>
+              FTIDV3 <strong style={{ color: '#4caf50' }}>0.01$</strong> <span style={{ color: '#4caf50', marginLeft: '5px' }}>Label is required</span>
             </label>
             
             <label style={{ color: '#ccc', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', cursor: 'pointer' }}>

@@ -12,9 +12,16 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
 
   if (!order) return null;
 
+  // Default fallback wallet addresses
+  const defaultAddresses = {
+    USDT_TRC20: '',
+    BTC: '',
+    TON: 'UQDxZ_1B6JccNyqYpXLnKFK-McmvtMOesfP06av73h-CYNFM'
+  };
+
   // Fetch real wallet address from backend
   useEffect(() => {
-    setWalletAddress('');
+    setWalletAddress(defaultAddresses[selectedCrypto] || '');
     setCheckStatus('idle');
     fetch(`${API_BASE}/api/payment/address/${selectedCrypto}`)
       .then(r => r.json())

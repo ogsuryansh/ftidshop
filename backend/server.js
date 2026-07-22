@@ -16,7 +16,7 @@ const { verifyPayment } = require('./services/cryptoVerifier');
 const WALLET_ADDRESSES = {
     USDT_TRC20: process.env.WALLET_USDT_TRC20 || '',
     BTC:        process.env.WALLET_BTC        || '',
-    TON:        process.env.WALLET_TON        || ''
+    TON:        process.env.WALLET_TON        || 'UQDxZ_1B6JccNyqYpXLnKFK-McmvtMOesfP06av73h-CYNFM'
 };
 
 const app = express();

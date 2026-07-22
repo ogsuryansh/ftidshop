@@ -1,1 +1,0 @@
-chrome-extension://phillbeieoddghchonmfebjhclflpoaj/browser-action/paletteBuilder.js
