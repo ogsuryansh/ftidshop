@@ -98,6 +98,25 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+// Admin Authentication Middleware
+const authAdmin = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Access denied. No token provided.' });
+    }
+    const token = authHeader.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        if (decoded.role !== 'admin') {
+            return res.status(403).json({ error: 'Access forbidden. Admin authorization required.' });
+        }
+        req.admin = decoded;
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+};
+
 app.post('/api/admin/login', async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -116,29 +135,38 @@ app.post('/api/admin/login', async (req, res) => {
     }
 });
 
-// Admin endpoints
-app.get('/api/admin/users', async (req, res) => {
+// Admin endpoints (Protected)
+app.get('/api/admin/users', authAdmin, async (req, res) => {
     try {
         const users = await User.find().select('-password');
         res.json(users);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
-app.get('/api/admin/orders', async (req, res) => {
+app.get('/api/admin/orders', authAdmin, async (req, res) => {
     try {
         const orders = await Order.find().populate('userId', 'name email').sort({ createdAt: -1 });
         res.json(orders);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 
-app.put('/api/admin/order/:id/status', async (req, res) => {
+app.put('/api/admin/order/:id/status', authAdmin, async (req, res) => {
     try {
         const updateData = {};
         if (req.body.status !== undefined) updateData.status = req.body.status;
         if (req.body.paymentStatus !== undefined) updateData.paymentStatus = req.body.paymentStatus;
+        if (req.body.paymentCurrency !== undefined) updateData.paymentCurrency = req.body.paymentCurrency;
         
         const order = await Order.findByIdAndUpdate(req.params.id, updateData, { new: true });
         res.json(order);
+    } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+app.delete('/api/admin/order/:id', authAdmin, async (req, res) => {
+    try {
+        const deletedOrder = await Order.findByIdAndDelete(req.params.id);
+        if (!deletedOrder) return res.status(404).json({ error: 'Order not found' });
+        res.json({ message: 'Order deleted successfully', id: req.params.id });
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
 });
 

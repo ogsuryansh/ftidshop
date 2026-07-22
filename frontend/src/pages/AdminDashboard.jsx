@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
 export default function AdminDashboard() {
@@ -7,60 +7,111 @@ export default function AdminDashboard() {
   const [admin, setAdmin] = useState(null);
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [transactions] = useState([
-    { id: 'TXN-001', user: 'john.doe@example.com', method: 'USDT (TRC20)', amount: 150, status: 'Success', date: '2026-07-19' },
-    { id: 'TXN-002', user: 'jane.smith@example.com', method: 'TON', amount: 45, status: 'Processing', date: '2026-07-18' },
-    { id: 'TXN-003', user: 'mike.ross@example.com', method: 'USDT (BEP20)', amount: 200, status: 'Failed', date: '2026-07-17' },
-    { id: 'TXN-004', user: 'alex.w@example.com', method: 'BTC', amount: 75, status: 'Success', date: '2026-07-16' },
-  ]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard'); // dashboard, orders, users
+  const [currentView, setCurrentView] = useState('dashboard'); // dashboard, orders, users, transactions
+  const [deletingId, setDeletingId] = useState(null);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin');
+    navigate('/admin/login');
+  }, [navigate]);
+
+  const getAuthHeaders = useCallback(() => {
+    const token = localStorage.getItem('admin_token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) {
+      handleLogout();
+      return;
+    }
+
+    try {
+      const [uRes, oRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/users`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE_URL}/api/admin/orders`, { headers: getAuthHeaders() })
+      ]);
+
+      if (uRes.status === 401 || uRes.status === 403 || oRes.status === 401 || oRes.status === 403) {
+        handleLogout();
+        return;
+      }
+
+      const uData = await uRes.json();
+      const oData = await oRes.json();
+      setUsers(Array.isArray(uData) ? uData : []);
+      setOrders(Array.isArray(oData) ? oData : []);
+    } catch (err) {
+      console.error('Fetch admin data error:', err);
+    }
+  }, [getAuthHeaders, handleLogout]);
 
   useEffect(() => {
     const adminData = localStorage.getItem('admin');
-    if (!adminData) {
+    const token = localStorage.getItem('admin_token');
+    if (!adminData || !token) {
       navigate('/admin/login');
     } else {
       setAdmin(JSON.parse(adminData));
       fetchData();
     }
-  }, [navigate]);
-
-  const fetchData = async () => {
-    try {
-      const [uRes, oRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/admin/users`),
-        fetch(`${API_BASE_URL}/api/admin/orders`)
-      ]);
-      const uData = await uRes.json();
-      const oData = await oRes.json();
-      setUsers(uData);
-      setOrders(oData);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  }, [navigate, fetchData]);
 
   const handleStatusChange = async (orderId, updateObj) => {
     try {
-      await fetch(`${API_BASE_URL}/api/admin/order/${orderId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/order/${orderId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify(updateObj)
       });
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        return;
+      }
       fetchData();
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    localStorage.removeItem('admin');
-    navigate('/admin/login');
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm("⚠️ Are you sure you want to delete this order? This action cannot be undone.")) {
+      return;
+    }
+    setDeletingId(orderId);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/order/${orderId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        return;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        setOrders(prev => prev.filter(o => o._id !== orderId));
+      } else {
+        alert(data.error || 'Failed to delete order');
+      }
+    } catch (err) {
+      console.error('Delete order error:', err);
+      alert('Error deleting order');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
-  if (!admin) return <div style={{ color: '#fff', padding: '20px' }}>Loading...</div>;
+  // Derived real transactions from paid/confirmed orders (NO dummy data)
+  const paidOrders = orders.filter(o => o.paymentStatus === 'Paid' || o.txHash);
+
+  if (!admin) return <div style={{ color: '#fff', padding: '20px' }}>Loading Admin Panel...</div>;
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#141617', position: 'relative' }}>
@@ -95,14 +146,14 @@ export default function AdminDashboard() {
           <button onClick={() => { setCurrentView('dashboard'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'dashboard' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <i className='bx bxs-dashboard'></i> Dashboard Overview
           </button>
-          <button onClick={() => { setCurrentView('transactions'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'transactions' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
-            <i className='bx bx-money'></i> Manage Transactions
-          </button>
           <button onClick={() => { setCurrentView('orders'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'orders' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
-            <i className='bx bx-cart'></i> Manage Orders
+            <i className='bx bx-cart'></i> Manage Orders ({orders.length})
+          </button>
+          <button onClick={() => { setCurrentView('transactions'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'transactions' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+            <i className='bx bx-money'></i> Deposit Transactions ({paidOrders.length})
           </button>
           <button onClick={() => { setCurrentView('users'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'users' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
-            <i className='bx bx-user'></i> Manage Users
+            <i className='bx bx-user'></i> Manage Users ({users.length})
           </button>
         </div>
       </div>
@@ -117,7 +168,7 @@ export default function AdminDashboard() {
           </button>
           
           <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginLeft: 'auto' }}>
-            <div style={{ color: '#fff', fontSize: '14px' }}><i className='bx bx-user-circle'></i> {admin.username}</div>
+            <div style={{ color: '#fff', fontSize: '14px' }}>🔒 <strong>{admin.username}</strong></div>
             <button onClick={handleLogout} className="button_solid p_2 radius_medium weight_bold" style={{ border: 'none', cursor: 'pointer', backgroundColor: '#e74c3c', fontSize: '12px' }}>
               Logout
             </button>
@@ -132,8 +183,10 @@ export default function AdminDashboard() {
               <h2 className="text_xlarge mb_4">Dashboard Overview</h2>
               <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
                 <div className="bg_secondary radius_medium p_6" style={{ flex: '1 1 300px', borderLeft: '4px solid #4caf50' }}>
-                  <div className="text_small color_neutral mb_2">Total Revenue</div>
-                  <div className="text_xxlarge weight_bold">${orders.reduce((sum, o) => sum + (o.price || 0), 0)}</div>
+                  <div className="text_small color_neutral mb_2">Total Revenue (Paid)</div>
+                  <div className="text_xxlarge weight_bold" style={{ color: '#4caf50' }}>
+                    ${orders.filter(o => o.paymentStatus === 'Paid').reduce((sum, o) => sum + (o.price || 0), 0).toFixed(2)}
+                  </div>
                 </div>
                 <div className="bg_secondary radius_medium p_6" style={{ flex: '1 1 300px', borderLeft: '4px solid #ff9800' }}>
                   <div className="text_small color_neutral mb_2">Total Orders</div>
@@ -149,37 +202,41 @@ export default function AdminDashboard() {
 
           {currentView === 'transactions' && (
             <div className="bg_secondary radius_medium p_6" style={{ overflowX: 'auto' }}>
-              <h3 className="text_large mb_4">Deposit Transactions</h3>
+              <h3 className="text_large mb_4">Verified Deposit Transactions</h3>
               <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '600px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #333' }}>
-                    <th className="p_2">TXN ID</th>
+                    <th className="p_2">Order ID</th>
                     <th className="p_2">User</th>
-                    <th className="p_2">Method</th>
+                    <th className="p_2">Currency</th>
                     <th className="p_2">Amount</th>
+                    <th className="p_2">TX Hash</th>
                     <th className="p_2">Date</th>
                     <th className="p_2">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map(t => (
-                    <tr key={t.id} style={{ borderBottom: '1px solid #333' }}>
-                      <td className="p_2 color_neutral">{t.id}</td>
-                      <td className="p_2">{t.user}</td>
-                      <td className="p_2">{t.method}</td>
-                      <td className="p_2" style={{ color: '#4caf50', fontWeight: 'bold' }}>${t.amount}</td>
-                      <td className="p_2">{t.date}</td>
+                  {paidOrders.map(t => (
+                    <tr key={t._id} style={{ borderBottom: '1px solid #333' }}>
+                      <td className="p_2 color_neutral" style={{ fontSize: '11px', fontFamily: 'monospace' }}>{t._id.slice(-8)}</td>
+                      <td className="p_2">{t.userId?.email || 'Guest'}</td>
+                      <td className="p_2" style={{ fontWeight: 'bold' }}>{t.paymentCurrency || 'Crypto'}</td>
+                      <td className="p_2" style={{ color: '#4caf50', fontWeight: 'bold' }}>${t.price || 0}</td>
+                      <td className="p_2" style={{ fontSize: '11px', fontFamily: 'monospace', color: '#888', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {t.txHash ? t.txHash : 'Manual Approval'}
+                      </td>
+                      <td className="p_2" style={{ fontSize: '12px' }}>{new Date(t.createdAt).toLocaleDateString()}</td>
                       <td className="p_2">
-                          <span style={{ 
-                              color: t.status === 'Success' ? '#4caf50' : t.status === 'Failed' ? '#f44336' : '#ff9800',
-                              fontWeight: 'bold',
-                              backgroundColor: t.status === 'Success' ? 'rgba(76, 175, 80, 0.1)' : t.status === 'Failed' ? 'rgba(244, 67, 54, 0.1)' : 'rgba(255, 152, 0, 0.1)',
-                              padding: '4px 8px', borderRadius: '4px'
-                          }}>{t.status}</span>
+                        <span style={{ 
+                            color: '#4caf50',
+                            fontWeight: 'bold',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            padding: '4px 8px', borderRadius: '4px', fontSize: '12px'
+                        }}>Paid</span>
                       </td>
                     </tr>
                   ))}
-                  {transactions.length === 0 && <tr><td colSpan="6" className="p_4 align_center color_neutral">No transactions found.</td></tr>}
+                  {paidOrders.length === 0 && <tr><td colSpan="7" className="p_4 align_center color_neutral">No confirmed payment transactions found yet.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -187,8 +244,8 @@ export default function AdminDashboard() {
 
           {currentView === 'orders' && (
             <div className="bg_secondary radius_medium p_6" style={{ overflowX: 'auto' }}>
-              <h3 className="text_large mb_4">Manage Orders</h3>
-              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '850px' }}>
+              <h3 className="text_large mb_4">Manage Orders ({orders.length})</h3>
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '950px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #333' }}>
                     <th className="p_2">Type</th>
@@ -212,6 +269,7 @@ export default function AdminDashboard() {
                       <td className="p_2" style={{ fontSize: '12px', maxWidth: '200px' }}>
                         {o.trackingNumber && <div><strong>Track:</strong> {o.trackingNumber}</div>}
                         {o.note && <div style={{ color: '#aaa', fontStyle: 'italic' }}>"{o.note}"</div>}
+                        {o.txHash && <div style={{ fontSize: '10px', color: '#00f2fe', fontFamily: 'monospace' }}>TX: {o.txHash.slice(0, 10)}...</div>}
                       </td>
                       <td className="p_2">
                         {o.fileData && o.fileData.data ? (
@@ -252,12 +310,23 @@ export default function AdminDashboard() {
                         </select>
                       </td>
                       <td className="p_2">
-                        <button
-                          onClick={() => handleStatusChange(o._id, { status: 'Completed', paymentStatus: 'Paid' })}
-                          style={{ backgroundColor: '#28a745', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
-                        >
-                          Approve All
-                        </button>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <button
+                            onClick={() => handleStatusChange(o._id, { status: 'Completed', paymentStatus: 'Paid' })}
+                            style={{ backgroundColor: '#28a745', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+                            title="Approve order and mark as paid"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOrder(o._id)}
+                            disabled={deletingId === o._id}
+                            style={{ backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold', opacity: deletingId === o._id ? 0.5 : 1 }}
+                            title="Delete order permanently"
+                          >
+                            {deletingId === o._id ? 'Deleting...' : '🗑️ Delete'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -269,7 +338,7 @@ export default function AdminDashboard() {
 
           {currentView === 'users' && (
             <div className="bg_secondary radius_medium p_6" style={{ overflowX: 'auto' }}>
-              <h3 className="text_large mb_4">Manage Users</h3>
+              <h3 className="text_large mb_4">Manage Users ({users.length})</h3>
               <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '600px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #333' }}>
