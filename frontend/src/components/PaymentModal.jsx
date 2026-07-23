@@ -14,8 +14,11 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
 
   // Default fallback wallet addresses
   const defaultAddresses = {
-    USDT_TRC20: '',
-    BTC: '',
+    BTC: '1F5Y3DYgZtTNLGkiyPz4vt762665qgnBpJ',
+    USDT_TRC20: 'TBtgkq5GTy1q4thASK23hmfRrJ8grLD4FR',
+    LTC: 'Lhkby8mb1DgZfVsQWrSopScTeNf252qi9Q',
+    SOL: 'AigcpMzqZw9asMFVSdNi8T4MAHHujykEUdyUjTH9F6JG',
+    ETH: '0x54defcf541d174e7443c1ada58875e3e04ca5178',
     TON: 'UQDxZ_1B6JccNyqYpXLnKFK-McmvtMOesfP06av73h-CYNFM'
   };
 
@@ -78,9 +81,16 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
     setTimeout(() => setCopied(''), 2000);
   };
 
-  const displayAddress = walletAddress || 'Loading...';
+  const displayAddress = walletAddress || defaultAddresses[selectedCrypto] || 'Loading...';
 
-  const cryptoLabels = { USDT_TRC20: 'USDT (TRC20)', BTC: 'Bitcoin (BTC)', TON: 'TON' };
+  const cryptoLabels = {
+    BTC: 'Bitcoin (BTC)',
+    USDT_TRC20: 'USDT (TRC20)',
+    LTC: 'Litecoin (LTC)',
+    SOL: 'Solana (SOL)',
+    ETH: 'Ethereum (ETH)',
+    TON: 'TON'
+  };
 
   return (
     <div style={{
@@ -142,25 +152,42 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
             </div>
           </div>
 
-          {/* Currency selector */}
+          {/* Currency selector (Dropdown Select Method) */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', color: '#aaa', marginBottom: '8px' }}>Select Payment Currency</label>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {['USDT_TRC20', 'BTC', 'TON'].map(c => (
-                <button
-                  key={c} type="button"
-                  onClick={() => handleCryptoSelect(c)}
-                  style={{
-                    flex: 1, padding: '10px', borderRadius: '6px', cursor: 'pointer',
-                    fontSize: '13px', fontWeight: 'bold', border: 'none', transition: 'all 0.2s',
-                    background: selectedCrypto === c ? 'linear-gradient(135deg, #00f2fe, #7f00ff)' : '#282a2c',
-                    color: '#fff'
-                  }}
-                >
-                  {cryptoLabels[c]}
-                </button>
-              ))}
-            </div>
+            <label style={{ display: 'block', fontSize: '13px', color: '#aaa', marginBottom: '8px', fontWeight: '500' }}>
+              Select Payment Currency Method
+            </label>
+            <select
+              value={selectedCrypto}
+              onChange={(e) => handleCryptoSelect(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px 15px',
+                borderRadius: '8px',
+                backgroundColor: '#282a2c',
+                color: '#fff',
+                border: '1px solid #00f2fe',
+                fontSize: '14px',
+                fontWeight: '600',
+                outline: 'none',
+                cursor: 'pointer',
+                boxSizing: 'border-box',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                MozAppearance: 'none',
+                backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300f2fe%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 15px top 50%',
+                backgroundSize: '12px auto'
+              }}
+            >
+              <option value="USDT_TRC20" style={{ background: '#1e2022', color: '#fff' }}>USDT (TRC20)</option>
+              <option value="BTC" style={{ background: '#1e2022', color: '#fff' }}>Bitcoin (BTC)</option>
+              <option value="LTC" style={{ background: '#1e2022', color: '#fff' }}>Litecoin (LTC)</option>
+              <option value="SOL" style={{ background: '#1e2022', color: '#fff' }}>Solana (SOL)</option>
+              <option value="ETH" style={{ background: '#1e2022', color: '#fff' }}>Ethereum (ETH)</option>
+              <option value="TON" style={{ background: '#1e2022', color: '#fff' }}>TON</option>
+            </select>
           </div>
 
           {/* Wallet address */}

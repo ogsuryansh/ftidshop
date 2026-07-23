@@ -17,7 +17,7 @@ const orderSchema = new mongoose.Schema({
     paymentStatus: { type: String, default: 'Pending Payment', enum: ['Pending Payment', 'Paid', 'Failed'] },
     status: { type: String, default: 'Pending Payment', enum: ['Pending Payment', 'Pending', 'Processing', 'Completed', 'Cancelled'] },
     // Crypto payment verification fields
-    paymentCurrency: { type: String, enum: ['USDT_TRC20', 'BTC', 'TON'], default: null },
+    paymentCurrency: { type: String, enum: ['USDT_TRC20', 'BTC', 'LTC', 'SOL', 'ETH', 'TON'], default: null },
     paymentAddress: { type: String, default: null }, // wallet address shown to user
     txHash: { type: String, default: null }, // confirmed transaction hash
     verificationAttempts: { type: Number, default: 0 },

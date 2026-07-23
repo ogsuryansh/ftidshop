@@ -118,12 +118,127 @@ async function verifyTON(address, amountUSD) {
     }
 }
 
+// ─── LTC Verification (Blockcypher API) ────────────────────────────────────
+async function verifyLTC(address, amountUSD) {
+    try {
+        const ltcPrice = await getCryptoPrice('litecoin');
+        if (!ltcPrice) return { verified: false, error: 'Could not fetch LTC price' };
+
+        const expectedSatoshis = (amountUSD / ltcPrice) * 1e8;
+        const tolerance = 0.03;
+
+        const data = await fetchJSON(`https://api.blockcypher.com/v1/ltc/main/addrs/${address}/full?limit=10`);
+        if (!data || !Array.isArray(data.txs)) return { verified: false };
+
+        for (const tx of data.txs) {
+            const received = tx.outputs
+                .filter(o => o.addresses && o.addresses.includes(address))
+                .reduce((sum, o) => sum + o.value, 0);
+
+            const diff = Math.abs(received - expectedSatoshis) / expectedSatoshis;
+            if (received > 0 && diff <= tolerance) {
+                return { verified: true, txHash: tx.hash };
+            }
+        }
+        return { verified: false };
+    } catch (e) {
+        console.error('[LTC Verify]', e.message);
+        return { verified: false, error: e.message };
+    }
+}
+
+// ─── SOL Verification (Helius API) ───────────────────────────────────────────
+async function verifySOL(address, amountUSD) {
+    const apiKey = process.env.SOL_API_KEY;
+    if (!apiKey) {
+        console.warn('[SOL Verify] No SOL_API_KEY set in .env');
+        return { verified: false, error: 'SOL_API_KEY not configured' };
+    }
+
+    try {
+        const solPrice = await getCryptoPrice('solana');
+        if (!solPrice) return { verified: false, error: 'Could not fetch SOL price' };
+
+        const expectedSol = amountUSD / solPrice;
+        const tolerance = 0.03; // 3% tolerance
+
+        const url = `https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${apiKey}`;
+        const data = await fetchJSON(url);
+
+        if (!Array.isArray(data)) return { verified: false };
+
+        const recent = data.slice(0, 10); // check last 10 transactions
+        for (const tx of recent) {
+            let solReceived = 0;
+            if (tx.nativeTransfers) {
+                for (const transfer of tx.nativeTransfers) {
+                    if (transfer.toUserAccount === address) {
+                        solReceived += transfer.amount / 1e9;
+                    }
+                }
+            }
+            
+            const diff = Math.abs(solReceived - expectedSol) / expectedSol;
+            if (solReceived > 0 && diff <= tolerance) {
+                return { verified: true, txHash: tx.signature };
+            }
+        }
+
+        return { verified: false };
+    } catch (e) {
+        console.error('[SOL Verify]', e.message);
+        return { verified: false, error: e.message };
+    }
+}
+
+// ─── ETH Verification (Etherscan API) ─────────────────────────────────────────
+async function verifyETH(address, amountUSD) {
+    const apiKey = process.env.ETH_API_KEY;
+    if (!apiKey) {
+        console.warn('[ETH Verify] No ETH_API_KEY set in .env');
+        return { verified: false, error: 'ETH_API_KEY not configured' };
+    }
+
+    try {
+        const ethPrice = await getCryptoPrice('ethereum');
+        if (!ethPrice) return { verified: false, error: 'Could not fetch ETH price' };
+
+        const expectedWei = (amountUSD / ethPrice) * 1e18;
+        const tolerance = 0.03; // 3% tolerance
+
+        // Check last 5 transactions
+        const url = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=5&sort=desc&apikey=${apiKey}`;
+        const data = await fetchJSON(url);
+
+        if (data.status !== '1' || !Array.isArray(data.result)) return { verified: false };
+
+        for (const tx of data.result) {
+            // Check if transaction is incoming to the address
+            if (tx.to && tx.to.toLowerCase() === address.toLowerCase()) {
+                const receivedWei = parseFloat(tx.value);
+                const diff = Math.abs(receivedWei - expectedWei) / expectedWei;
+                
+                if (receivedWei > 0 && diff <= tolerance) {
+                    return { verified: true, txHash: tx.hash };
+                }
+            }
+        }
+        return { verified: false };
+    } catch (e) {
+        console.error('[ETH Verify]', e.message);
+        return { verified: false, error: e.message };
+    }
+}
+
 // ─── Main verify dispatcher ───────────────────────────────────────────────────
 async function verifyPayment(currency, address, amountUSD) {
     console.log(`[CryptoVerifier] Checking ${currency} payment of $${amountUSD} to ${address}`);
     switch (currency) {
         case 'USDT_TRC20': return await verifyUSDT(address, amountUSD);
         case 'BTC':        return await verifyBTC(address, amountUSD);
+        case 'LTC':        return await verifyLTC(address, amountUSD);
+        case 'SOL':        return await verifySOL(address, amountUSD);
+        case 'ETH':        return await verifyETH(address, amountUSD);
         case 'TON':        return await verifyTON(address, amountUSD);
         default:           return { verified: false, error: 'Unknown currency' };
     }

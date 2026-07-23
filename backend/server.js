@@ -14,8 +14,11 @@ const { verifyPayment } = require('./services/cryptoVerifier');
 
 // ─── Wallet addresses (set in .env) ──────────────────────────────────────────
 const WALLET_ADDRESSES = {
-    USDT_TRC20: process.env.WALLET_USDT_TRC20 || '',
-    BTC:        process.env.WALLET_BTC        || '',
+    USDT_TRC20: process.env.WALLET_USDT_TRC20 || 'TBtgkq5GTy1q4thASK23hmfRrJ8grLD4FR',
+    BTC:        process.env.WALLET_BTC        || '1F5Y3DYgZtTNLGkiyPz4vt762665qgnBpJ',
+    LTC:        process.env.WALLET_LTC        || 'Lhkby8mb1DgZfVsQWrSopScTeNf252qi9Q',
+    SOL:        process.env.WALLET_SOL        || 'AigcpMzqZw9asMFVSdNi8T4MAHHujykEUdyUjTH9F6JG',
+    ETH:        process.env.WALLET_ETH        || '0x54defcf541d174e7443c1ada58875e3e04ca5178',
     TON:        process.env.WALLET_TON        || 'UQDxZ_1B6JccNyqYpXLnKFK-McmvtMOesfP06av73h-CYNFM'
 };
 
