@@ -11,6 +11,21 @@ export default function AdminDashboard() {
   const [currentView, setCurrentView] = useState('dashboard'); // dashboard, orders, users, transactions
   const [deletingId, setDeletingId] = useState(null);
 
+  const [products, setProducts] = useState([]);
+  const [productCategoryFilter, setProductCategoryFilter] = useState('All');
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [productForm, setProductForm] = useState({
+    category: 'Insider Scans "Only tracking needed"',
+    courier: 'UPS',
+    name: '',
+    price: '',
+    desc: '',
+    badge: '',
+    badgeColor: '#d9534f',
+    active: true
+  });
+
   const handleLogout = useCallback(() => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin');
@@ -33,9 +48,10 @@ export default function AdminDashboard() {
     }
 
     try {
-      const [uRes, oRes] = await Promise.all([
+      const [uRes, oRes, pRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/admin/users`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE_URL}/api/admin/orders`, { headers: getAuthHeaders() })
+        fetch(`${API_BASE_URL}/api/admin/orders`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE_URL}/api/admin/products`, { headers: getAuthHeaders() })
       ]);
 
       if (uRes.status === 401 || uRes.status === 403 || oRes.status === 401 || oRes.status === 403) {
@@ -45,8 +61,10 @@ export default function AdminDashboard() {
 
       const uData = await uRes.json();
       const oData = await oRes.json();
+      const pData = await pRes.json();
       setUsers(Array.isArray(uData) ? uData : []);
       setOrders(Array.isArray(oData) ? oData : []);
+      setProducts(Array.isArray(pData) ? pData : []);
     } catch (err) {
       console.error('Fetch admin data error:', err);
     }
@@ -62,6 +80,89 @@ export default function AdminDashboard() {
       fetchData();
     }
   }, [navigate, fetchData]);
+
+  const handleSaveProduct = async (e) => {
+    e.preventDefault();
+    try {
+      const url = editingProduct 
+        ? `${API_BASE_URL}/api/admin/products/${editingProduct._id}`
+        : `${API_BASE_URL}/api/admin/products`;
+      const method = editingProduct ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ...productForm,
+          price: Number(productForm.price)
+        })
+      });
+
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        return;
+      }
+
+      if (res.ok) {
+        setIsProductModalOpen(false);
+        setEditingProduct(null);
+        setProductForm({
+          category: 'Insider Scans "Only tracking needed"',
+          courier: 'UPS',
+          name: '',
+          price: '',
+          desc: '',
+          badge: '',
+          badgeColor: '#d9534f',
+          active: true
+        });
+        fetchData();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to save product');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error saving product');
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm("⚠️ Are you sure you want to delete this product?")) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/products/${productId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        return;
+      }
+      if (res.ok) {
+        setProducts(prev => prev.filter(p => p._id !== productId));
+      } else {
+        alert('Failed to delete product');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting product');
+    }
+  };
+
+  const handleToggleProductActive = async (product) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/products/${product._id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ active: !product.active })
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleStatusChange = async (orderId, updateObj) => {
     try {
@@ -151,6 +252,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => { setCurrentView('transactions'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'transactions' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <i className='bx bx-money'></i> Deposit Transactions ({paidOrders.length})
+          </button>
+          <button onClick={() => { setCurrentView('products'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'products' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+            <i className='bx bx-purchase-tag-alt'></i> Products & Pricing ({products.length})
           </button>
           <button onClick={() => { setCurrentView('users'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'users' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <i className='bx bx-user'></i> Manage Users ({users.length})
@@ -362,8 +466,267 @@ export default function AdminDashboard() {
               </table>
             </div>
           )}
+
+          {currentView === 'products' && (
+            <div className="bg_secondary radius_medium p_6" style={{ overflowX: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+                <div>
+                  <h3 className="text_large" style={{ margin: 0 }}>Products & Pricing ({products.length})</h3>
+                  <p style={{ color: '#999', fontSize: '13px', margin: '4px 0 0 0' }}>Manage store categories, couriers, methods, and prices in real-time.</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setProductForm({
+                      category: 'Insider Scans "Only tracking needed"',
+                      courier: 'UPS',
+                      name: '',
+                      price: '',
+                      desc: '',
+                      badge: '',
+                      badgeColor: '#d9534f',
+                      active: true
+                    });
+                    setIsProductModalOpen(true);
+                  }}
+                  style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}
+                >
+                  + Add New Product
+                </button>
+              </div>
+
+              {/* Category Filters */}
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '5px' }}>
+                {['All', ...Array.from(new Set(products.map(p => p.category)))].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setProductCategoryFilter(cat)}
+                    style={{
+                      backgroundColor: productCategoryFilter === cat ? '#00f2fe' : '#2a2a2a',
+                      color: productCategoryFilter === cat ? '#000' : '#ccc',
+                      border: 'none',
+                      padding: '6px 14px',
+                      borderRadius: '15px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              {/* Products Table */}
+              <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '750px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #333', color: '#888', fontSize: '12px', textTransform: 'uppercase' }}>
+                    <th className="p_2">Category / Country</th>
+                    <th className="p_2">Courier</th>
+                    <th className="p_2">Method Name</th>
+                    <th className="p_2">Price ($)</th>
+                    <th className="p_2">Badge</th>
+                    <th className="p_2">Status</th>
+                    <th className="p_2" style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products
+                    .filter(p => productCategoryFilter === 'All' || p.category === productCategoryFilter)
+                    .map(p => (
+                    <tr key={p._id} style={{ borderBottom: '1px solid #2a2a2a' }}>
+                      <td className="p_2" style={{ fontSize: '13px', color: '#fff' }}>{p.category}</td>
+                      <td className="p_2" style={{ fontSize: '13px', color: '#00f2fe' }}>{p.courier}</td>
+                      <td className="p_2" style={{ fontSize: '13px', color: '#fff', fontWeight: 'bold' }}>{p.name}</td>
+                      <td className="p_2" style={{ fontSize: '14px', color: '#4caf50', fontWeight: 'bold' }}>${p.price}</td>
+                      <td className="p_2">
+                        {p.badge ? (
+                          <span style={{ backgroundColor: p.badgeColor || '#d9534f', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '10px' }}>
+                            {p.badge}
+                          </span>
+                        ) : (
+                          <span style={{ color: '#666', fontSize: '12px' }}>—</span>
+                        )}
+                      </td>
+                      <td className="p_2">
+                        <button
+                          onClick={() => handleToggleProductActive(p)}
+                          style={{
+                            backgroundColor: p.active ? '#1b5e20' : '#424242',
+                            color: p.active ? '#81c784' : '#aaa',
+                            border: 'none',
+                            padding: '3px 8px',
+                            borderRadius: '10px',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {p.active ? 'Active' : 'Disabled'}
+                        </button>
+                      </td>
+                      <td className="p_2" style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => {
+                              setEditingProduct(p);
+                              setProductForm({
+                                category: p.category,
+                                courier: p.courier,
+                                name: p.name,
+                                price: p.price,
+                                desc: p.desc || '',
+                                badge: p.badge || '',
+                                badgeColor: p.badgeColor || '#d9534f',
+                                active: p.active
+                              });
+                              setIsProductModalOpen(true);
+                            }}
+                            style={{ backgroundColor: '#2196f3', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p._id)}
+                            style={{ backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {products.length === 0 && (
+                    <tr><td colSpan="7" className="p_4 align_center color_neutral">No products found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Product Add/Edit Modal */}
+      {isProductModalOpen && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: '#1c1e1f', border: '1px solid #333', borderRadius: '10px', width: '100%', maxWidth: '500px', padding: '25px', color: '#fff', boxSizing: 'border-box' }}>
+            <h3 style={{ marginTop: 0, color: '#00f2fe', fontSize: '18px', marginBottom: '20px' }}>
+              {editingProduct ? '✏️ Edit Product / Method' : '➕ Add New Product / Method'}
+            </h3>
+            <form onSubmit={handleSaveProduct} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Category / Country</label>
+                <input
+                  type="text"
+                  required
+                  placeholder='e.g. Insider Scans "Only tracking needed" or United States US'
+                  value={productForm.category}
+                  onChange={e => setProductForm({ ...productForm, category: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Courier</label>
+                <input
+                  type="text"
+                  required
+                  placeholder='e.g. UPS, FedEx, USPS, Canada Post, DHL'
+                  value={productForm.courier}
+                  onChange={e => setProductForm({ ...productForm, courier: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Method Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder='e.g. Rts insider city/any state'
+                  value={productForm.name}
+                  onChange={e => setProductForm({ ...productForm, name: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Price ($ USD)</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="any"
+                    placeholder='70'
+                    value={productForm.price}
+                    onChange={e => setProductForm({ ...productForm, price: e.target.value })}
+                    style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                  />
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Badge Color</label>
+                  <input
+                    type="color"
+                    value={productForm.badgeColor}
+                    onChange={e => setProductForm({ ...productForm, badgeColor: e.target.value })}
+                    style={{ width: '100%', height: '40px', padding: '2px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', cursor: 'pointer' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Badge Text (Optional)</label>
+                <input
+                  type="text"
+                  placeholder='e.g. Click to read description or Label is required'
+                  value={productForm.badge}
+                  onChange={e => setProductForm({ ...productForm, badge: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Description (Optional)</label>
+                <textarea
+                  rows="3"
+                  placeholder='Detailed description shown to user when clicking description badge'
+                  value={productForm.desc}
+                  onChange={e => setProductForm({ ...productForm, desc: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '5px 0' }}>
+                <input
+                  type="checkbox"
+                  id="activeCheck"
+                  checked={productForm.active}
+                  onChange={e => setProductForm({ ...productForm, active: e.target.checked })}
+                />
+                <label htmlFor="activeCheck" style={{ fontSize: '13px', color: '#ccc', cursor: 'pointer' }}>Active in Store Catalog</label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsProductModalOpen(false)}
+                  style={{ backgroundColor: '#444', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '5px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '8px 24px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  {editingProduct ? 'Save Changes' : 'Create Product'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media (min-width: 992px) {

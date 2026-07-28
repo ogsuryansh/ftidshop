@@ -13,57 +13,100 @@ export default function FtidSubmitOrder() {
   const [createdOrder, setCreatedOrder] = useState(null);
   const [activeDesc, setActiveDesc] = useState(null);
 
-  // Configuration for Couriers & Methods per Country
-  const countryConfigs = {
+  const [dbProducts, setDbProducts] = useState([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/products`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setDbProducts(data);
+        }
+      })
+      .catch(err => console.error("Error loading products:", err));
+  }, []);
+
+  // Default fallback configuration for Couriers & Methods per Country
+  const defaultCountryConfigs = {
     'Insider Scans "Only tracking needed"': {
       couriers: ['UPS', 'FedEx', 'USPS'],
       methods: [
-        { name: 'Rts insider city/any state', price: 70, desc: 'RTS Insider scan update for any city or state.', badge: null },
-        { name: 'Ap lit ups any city', price: 25, desc: 'AP LIT UPS scan update for any city.', badge: 'Click to read description', badgeColor: '#d9534f' },
-        { name: 'Fedex driver lit', price: 80, desc: 'FedEx Driver Lost In Transit scan update.', badge: null },
-        { name: 'ap lit worldwide', price: 25, desc: 'Worldwide Access Point LIT service for international tracking.', badge: 'Click to read description', badgeColor: '#d9534f' },
-        { name: 'manual rts', price: 35, desc: 'Manual Return To Sender scan service.', badge: null }
+        { name: 'Rts insider city/any state', price: 70, desc: 'RTS Insider scan update for any city or state.', badge: null, courier: 'UPS' },
+        { name: 'Ap lit ups any city', price: 25, desc: 'AP LIT UPS scan update for any city.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'Fedex driver lit', price: 80, desc: 'FedEx Driver Lost In Transit scan update.', badge: null, courier: 'FedEx' },
+        { name: 'ap lit worldwide', price: 25, desc: 'Worldwide Access Point LIT service for international tracking.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'manual rts', price: 35, desc: 'Manual Return To Sender scan service.', badge: null, courier: 'UPS' }
       ]
     },
     'United States US': {
       couriers: ['UPS', 'FedEx', 'USPS'],
       methods: [
-        { name: 'Cali LIT (Very Limited)', price: 45, desc: 'Specialized Lost In Transit method for California region shipments with high success rate.', badge: 'Click to read description', badgeColor: '#d9534f' },
-        { name: 'UPS UTD (must be in transit = yes)', price: 60, desc: 'Unable To Deliver scan update for active UPS packages currently in transit.', badge: null },
-        { name: 'UPS RTS', price: 60, desc: 'Return To Sender scan process for UPS packages.', badge: null },
-        { name: 'UPS LIT Store', price: 45, desc: 'Lost In Transit method performed via physical UPS Store dropoffs.', badge: 'Click to read description', badgeColor: '#d9534f' },
-        { name: 'AP LIT WORLDWIDE', price: 30, desc: 'Worldwide Access Point LIT service for international UPS tracking.', badge: 'Click to read description', badgeColor: '#d9534f' }
+        { name: 'Cali LIT (Very Limited)', price: 45, desc: 'Specialized Lost In Transit method for California region shipments with high success rate.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'UPS UTD (must be in transit = yes)', price: 60, desc: 'Unable To Deliver scan update for active UPS packages currently in transit.', badge: null, courier: 'UPS' },
+        { name: 'UPS RTS', price: 60, desc: 'Return To Sender scan process for UPS packages.', badge: null, courier: 'UPS' },
+        { name: 'UPS LIT Store', price: 45, desc: 'Lost In Transit method performed via physical UPS Store dropoffs.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'AP LIT WORLDWIDE', price: 30, desc: 'Worldwide Access Point LIT service for international UPS tracking.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' }
       ]
     },
     'Canada CA': {
       couriers: ['Canada Post', 'Purolator', 'UPS', 'FedEx', 'DHL'],
       methods: [
-        { name: 'FTIDV3', price: 20, desc: 'FTID Version 3 processing. High speed delivery status update.', badge: 'Label is required', badgeColor: '#4caf50' },
-        { name: 'LIT', price: 35, desc: 'Lost in Transit scan update for Canadian courier shipments.', badge: 'Label is required', badgeColor: '#4caf50' },
-        { name: 'FTIDNA', price: 35, desc: 'FTID No Access / No Arrival update for Canadian carriers.', badge: 'Label is required', badgeColor: '#4caf50' }
+        { name: 'FTIDV3', price: 20, desc: 'FTID Version 3 processing. High speed delivery status update.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'Canada Post' },
+        { name: 'LIT', price: 35, desc: 'Lost in Transit scan update for Canadian courier shipments.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'Canada Post' },
+        { name: 'FTIDNA', price: 35, desc: 'FTID No Access / No Arrival update for Canadian carriers.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'Canada Post' }
       ]
     },
     'Germany DE': {
       couriers: ['DHL', 'DPD', 'GLS', 'UPS', 'Hermes', 'DHL Express'],
       methods: [
-        { name: 'FTIDV3', price: 25, desc: 'FTID Version 3 processing for EU / Germany shipments.', badge: 'Label is required', badgeColor: '#4caf50' },
-        { name: 'LIT', price: 40, desc: 'Lost in Transit scan update for German couriers.', badge: 'Label is required', badgeColor: '#4caf50' },
-        { name: 'FTIDNA', price: 40, desc: 'FTID No Arrival update for European carriers.', badge: 'Label is required', badgeColor: '#4caf50' }
+        { name: 'FTIDV3', price: 25, desc: 'FTID Version 3 processing for EU / Germany shipments.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'DHL' },
+        { name: 'LIT', price: 40, desc: 'Lost in Transit scan update for German couriers.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'DHL' },
+        { name: 'FTIDNA', price: 40, desc: 'FTID No Arrival update for European carriers.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'DHL' }
       ]
     }
   };
 
-  const currentConfig = countryConfigs[country] || countryConfigs['United States US'];
+  const countryConfigs = React.useMemo(() => {
+    if (dbProducts.length === 0) return defaultCountryConfigs;
+    const configs = {};
+    dbProducts.forEach(item => {
+      if (!configs[item.category]) {
+        configs[item.category] = { couriers: [], methods: [] };
+      }
+      if (!configs[item.category].couriers.includes(item.courier)) {
+        configs[item.category].couriers.push(item.courier);
+      }
+      configs[item.category].methods.push({
+        name: item.name,
+        price: item.price,
+        desc: item.desc,
+        badge: item.badge,
+        badgeColor: item.badgeColor,
+        courier: item.courier
+      });
+    });
+    return configs;
+  }, [dbProducts]);
+
+  const currentConfig = countryConfigs[country] || Object.values(countryConfigs)[0] || { couriers: [], methods: [] };
+  const availableMethods = currentConfig.methods ? currentConfig.methods.filter(m => !m.courier || m.courier === courier || currentConfig.methods.length === 1) : [];
 
   // Automatically select first courier and method when country changes
   useEffect(() => {
-    if (currentConfig) {
-      setCourier(currentConfig.couriers[0]);
-      if (currentConfig.methods.length > 0) {
-        setMethod(currentConfig.methods[0].name);
+    if (currentConfig && currentConfig.couriers.length > 0) {
+      if (!currentConfig.couriers.includes(courier)) {
+        setCourier(currentConfig.couriers[0]);
       }
     }
-  }, [country]);
+  }, [country, currentConfig]);
+
+  useEffect(() => {
+    if (availableMethods.length > 0) {
+      if (!availableMethods.some(m => m.name === method)) {
+        setMethod(availableMethods[0].name);
+      }
+    }
+  }, [courier, availableMethods]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -137,17 +180,16 @@ export default function FtidSubmitOrder() {
         
         {/* Country Dropdown */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Country</label>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Country / Category</label>
           <select 
             value={country} 
             onChange={e => setCountry(e.target.value)} 
             required 
             style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }}
           >
-            <option value='Insider Scans "Only tracking needed"'>Insider Scans "Only tracking needed"</option>
-            <option value="United States US">United States US</option>
-            <option value="Canada CA">Canada CA</option>
-            <option value="Germany DE">Germany DE</option>
+            {Object.keys(countryConfigs).map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
           </select>
         </div>
 
@@ -170,7 +212,7 @@ export default function FtidSubmitOrder() {
         <div>
           <label style={{ display: 'block', marginBottom: '12px', color: '#ccc', fontSize: '14px' }}>Methods</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {currentConfig.methods.map((m) => (
+            {(availableMethods.length > 0 ? availableMethods : currentConfig.methods).map((m) => (
               <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                 <label style={{ color: '#ccc', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                   <input 

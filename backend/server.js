@@ -10,6 +10,7 @@ require('dotenv').config();
 const User = require('./models/User');
 const Admin = require('./models/Admin');
 const Order = require('./models/Order');
+const Product = require('./models/Product');
 const { verifyPayment } = require('./services/cryptoVerifier');
 
 // ─── Wallet addresses (set in .env) ──────────────────────────────────────────
@@ -49,7 +50,34 @@ const connectDB = async () => {
             await newAdmin.save();
             console.log('Default admin created: username (admin) password (admin123)');
         }
-    } catch (err) {
+
+        const productCount = await Product.countDocuments();
+        if (productCount === 0) {
+            const initialProducts = [
+                // Insider Scans
+                { category: 'Insider Scans "Only tracking needed"', courier: 'UPS', name: 'Rts insider city/any state', price: 70, desc: 'RTS Insider scan update for any city or state.', badge: null, active: true },
+                { category: 'Insider Scans "Only tracking needed"', courier: 'UPS', name: 'Ap lit ups any city', price: 25, desc: 'AP LIT UPS scan update for any city.', badge: 'Click to read description', badgeColor: '#d9534f', active: true },
+                { category: 'Insider Scans "Only tracking needed"', courier: 'FedEx', name: 'Fedex driver lit', price: 80, desc: 'FedEx Driver Lost In Transit scan update.', badge: null, active: true },
+                { category: 'Insider Scans "Only tracking needed"', courier: 'UPS', name: 'ap lit worldwide', price: 25, desc: 'Worldwide Access Point LIT service for international tracking.', badge: 'Click to read description', badgeColor: '#d9534f', active: true },
+                { category: 'Insider Scans "Only tracking needed"', courier: 'UPS', name: 'manual rts', price: 35, desc: 'Manual Return To Sender scan service.', badge: null, active: true },
+                // United States US
+                { category: 'United States US', courier: 'UPS', name: 'Cali LIT (Very Limited)', price: 45, desc: 'Specialized Lost In Transit method for California region shipments with high success rate.', badge: 'Click to read description', badgeColor: '#d9534f', active: true },
+                { category: 'United States US', courier: 'UPS', name: 'UPS UTD (must be in transit = yes)', price: 60, desc: 'Unable To Deliver scan update for active UPS packages currently in transit.', badge: null, active: true },
+                { category: 'United States US', courier: 'UPS', name: 'UPS RTS', price: 60, desc: 'Return To Sender scan process for UPS packages.', badge: null, active: true },
+                { category: 'United States US', courier: 'UPS', name: 'UPS LIT Store', price: 45, desc: 'Lost In Transit method performed via physical UPS Store dropoffs.', badge: 'Click to read description', badgeColor: '#d9534f', active: true },
+                { category: 'United States US', courier: 'UPS', name: 'AP LIT WORLDWIDE', price: 30, desc: 'Worldwide Access Point LIT service for international UPS tracking.', badge: 'Click to read description', badgeColor: '#d9534f', active: true },
+                // Canada CA
+                { category: 'Canada CA', courier: 'Canada Post', name: 'FTIDV3', price: 20, desc: 'FTID Version 3 processing. High speed delivery status update.', badge: 'Label is required', badgeColor: '#4caf50', active: true },
+                { category: 'Canada CA', courier: 'Canada Post', name: 'LIT', price: 35, desc: 'Lost in Transit scan update for Canadian courier shipments.', badge: 'Label is required', badgeColor: '#4caf50', active: true },
+                { category: 'Canada CA', courier: 'Canada Post', name: 'FTIDNA', price: 35, desc: 'FTID No Access / No Arrival update for Canadian carriers.', badge: 'Label is required', badgeColor: '#4caf50', active: true },
+                // Germany DE
+                { category: 'Germany DE', courier: 'DHL', name: 'FTIDV3', price: 25, desc: 'FTID Version 3 processing for EU / Germany shipments.', badge: 'Label is required', badgeColor: '#4caf50', active: true },
+                { category: 'Germany DE', courier: 'DHL', name: 'LIT', price: 40, desc: 'Lost in Transit scan update for German couriers.', badge: 'Label is required', badgeColor: '#4caf50', active: true },
+                { category: 'Germany DE', courier: 'DHL', name: 'FTIDNA', price: 40, desc: 'FTID No Arrival update for European carriers.', badge: 'Label is required', badgeColor: '#4caf50', active: true }
+            ];
+            await Product.insertMany(initialProducts);
+            console.log('Initial product catalog seeded successfully.');
+        } catch (err) {
         console.error('MongoDB connection error:', err);
     }
 };
@@ -171,6 +199,75 @@ app.delete('/api/admin/order/:id', authAdmin, async (req, res) => {
         if (!deletedOrder) return res.status(404).json({ error: 'Order not found' });
         res.json({ message: 'Order deleted successfully', id: req.params.id });
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
+});
+
+// ─── Product Management Endpoints ─────────────────────────────────────────────
+// Public endpoint to fetch active store catalog for users
+app.get('/api/products', async (req, res) => {
+    try {
+        const products = await Product.find({ active: true }).sort({ category: 1, courier: 1, name: 1 });
+        res.json(products);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error fetching products' });
+    }
+});
+
+// Admin endpoints (Protected)
+app.get('/api/admin/products', authAdmin, async (req, res) => {
+    try {
+        const products = await Product.find().sort({ createdAt: -1 });
+        res.json(products);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error fetching products' });
+    }
+});
+
+app.post('/api/admin/products', authAdmin, async (req, res) => {
+    try {
+        const { category, courier, name, price, desc, badge, badgeColor, active } = req.body;
+        if (!category || !courier || !name || price === undefined) {
+            return res.status(400).json({ error: 'Category, courier, name, and price are required' });
+        }
+        const newProduct = new Product({
+            category,
+            courier,
+            name,
+            price: Number(price),
+            desc: desc || '',
+            badge: badge || null,
+            badgeColor: badgeColor || '#d9534f',
+            active: active !== undefined ? active : true
+        });
+        await newProduct.save();
+        res.json(newProduct);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error creating product' });
+    }
+});
+
+app.put('/api/admin/products/:id', authAdmin, async (req, res) => {
+    try {
+        const updated = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!updated) return res.status(404).json({ error: 'Product not found' });
+        res.json(updated);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error updating product' });
+    }
+});
+
+app.delete('/api/admin/products/:id', authAdmin, async (req, res) => {
+    try {
+        const deleted = await Product.findByIdAndDelete(req.params.id);
+        if (!deleted) return res.status(404).json({ error: 'Product not found' });
+        res.json({ message: 'Product deleted successfully', id: req.params.id });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error deleting product' });
+    }
 });
 
 // User Order endpoints
