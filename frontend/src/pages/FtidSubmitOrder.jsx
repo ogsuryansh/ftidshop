@@ -18,11 +18,11 @@ export default function FtidSubmitOrder() {
     'Insider Scans "Only tracking needed"': {
       couriers: ['UPS', 'FedEx', 'USPS'],
       methods: [
-        { name: 'Cali LIT (Very Limited)', price: 45, desc: 'Specialized Lost In Transit method for California region shipments with high success rate.', badge: 'Click to read description', badgeColor: '#d9534f' },
-        { name: 'UPS UTD (must be in transit = yes)', price: 60, desc: 'Unable To Deliver scan update for active UPS packages currently in transit.', badge: null },
-        { name: 'UPS RTS', price: 60, desc: 'Return To Sender scan process for UPS packages.', badge: null },
-        { name: 'UPS LIT Store', price: 45, desc: 'Lost In Transit method performed via physical UPS Store dropoffs.', badge: 'Click to read description', badgeColor: '#d9534f' },
-        { name: 'AP LIT WORLDWIDE', price: 30, desc: 'Worldwide Access Point LIT service for international UPS tracking.', badge: 'Click to read description', badgeColor: '#d9534f' }
+        { name: 'Rts insider city/any state', price: 70, desc: 'RTS Insider scan update for any city or state.', badge: null },
+        { name: 'Ap lit ups any city', price: 25, desc: 'AP LIT UPS scan update for any city.', badge: 'Click to read description', badgeColor: '#d9534f' },
+        { name: 'Fedex driver lit', price: 80, desc: 'FedEx Driver Lost In Transit scan update.', badge: null },
+        { name: 'ap lit worldwide', price: 25, desc: 'Worldwide Access Point LIT service for international tracking.', badge: 'Click to read description', badgeColor: '#d9534f' },
+        { name: 'manual rts', price: 35, desc: 'Manual Return To Sender scan service.', badge: null }
       ]
     },
     'United States US': {

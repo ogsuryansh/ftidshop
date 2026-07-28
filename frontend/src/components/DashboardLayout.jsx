@@ -40,26 +40,16 @@ export default function DashboardLayout() {
         </div>
 
         <div>
-          <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '15px', color: '#fff' }}>Partners</div>
-          <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bxl-sketch'></i> Playboy.gd
-          </Link>
-          <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bx-send'></i> Voided.to
-          </Link>
-        </div>
-
-        <div>
           <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '15px', color: '#fff' }}>Help</div>
-          <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
+          <a href="https://t.me/+CaAi1_Ps4mE3NjZh" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
             <i className='bx bx-chat'></i> Community chat
-          </Link>
-          <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
+          </a>
+          <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
             <i className='bx bx-news'></i> FTID.SHOP news
-          </Link>
-          <Link to="#" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bx-question-mark'></i> FAQ
-          </Link>
+          </a>
+          <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
+            <i className='bx bx-support'></i> Support (@rts_www)
+          </a>
         </div>
 
       </div>
@@ -81,7 +71,7 @@ export default function DashboardLayout() {
             {/* Banner */}
             <div style={{ backgroundColor: '#1c1e1f', padding: '8px 0', borderRadius: '8px', marginBottom: '30px', overflow: 'hidden', border: '1px solid #2a2a2a' }}>
                 <marquee scrollamount="5" style={{ fontSize: '15px', fontWeight: '500', letterSpacing: '0.5px', color: '#ff4d4d' }}>
-                    ⚠️ <strong style={{ color: '#ff4d4d' }}>NOTICE:</strong> Our new Telegram account for support is <strong>@support</strong> &nbsp;|&nbsp; Join our new update channel by clicking <a href="https://t.me/+_K7FLYiIzP41MzJi" style={{ color: '#ff4d4d', textDecoration: 'underline' }}>here</a>
+                    ⚠️ <strong style={{ color: '#ff4d4d' }}>NOTICE:</strong> Our new Telegram account for support is <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer" style={{ color: '#ff4d4d', fontWeight: 'bold' }}>@rts_www</a> &nbsp;|&nbsp; Join our new update channel by clicking <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer" style={{ color: '#ff4d4d', textDecoration: 'underline' }}>here</a>
                 </marquee>
             </div>
 
