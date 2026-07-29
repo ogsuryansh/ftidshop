@@ -8,7 +8,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   const [checkStatus, setCheckStatus] = useState('idle'); // idle | checking | confirmed | failed
   const [txHash, setTxHash] = useState('');
   const [attempts, setAttempts] = useState(0);
-  const [showQR, setShowQR] = useState(true);
+  const [showQR, setShowQR] = useState(false);
   const pollRef = useRef(null);
 
   if (!order) return null;
@@ -104,8 +104,16 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   };
 
   const qrCodeUrl = displayAddress 
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(displayAddress)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(displayAddress)}`
     : '';
+
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalStyle || 'initial';
+    };
+  }, []);
 
   return (
     <div style={{
@@ -114,7 +122,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      zIndex: 9999, padding: '16px', overflowY: 'auto'
+      zIndex: 9999, padding: '16px', overflow: 'hidden'
     }}>
       <style>{`
         @keyframes pulseGlow {
@@ -126,34 +134,51 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        .modal-scroll-container::-webkit-scrollbar {
+          width: 6px;
+        }
+        .modal-scroll-container::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        .modal-scroll-container::-webkit-scrollbar-thumb {
+          background: rgba(0, 242, 254, 0.4);
+          border-radius: 10px;
+        }
       `}</style>
 
-      <div style={{
-        backgroundColor: '#12151a',
-        background: 'linear-gradient(145deg, #161a22 0%, #0e1014 100%)',
-        border: '1px solid rgba(0, 242, 254, 0.25)',
-        borderRadius: '20px',
-        width: '100%', maxWidth: '480px',
-        padding: '24px 20px',
-        color: '#ffffff',
-        boxSizing: 'border-box',
-        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
-        position: 'relative',
-        animation: 'pulseGlow 4s infinite ease-in-out'
-      }}>
+      <div
+        className="modal-scroll-container"
+        style={{
+          backgroundColor: '#12151a',
+          background: 'linear-gradient(145deg, #161a22 0%, #0e1014 100%)',
+          border: '1px solid rgba(0, 242, 254, 0.3)',
+          borderRadius: '20px',
+          width: '100%', maxWidth: '460px',
+          maxHeight: '85vh',
+          overflowY: 'auto',
+          margin: 'auto',
+          padding: '20px 18px',
+          color: '#ffffff',
+          boxSizing: 'border-box',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+          position: 'relative',
+          animation: 'pulseGlow 4s infinite ease-in-out'
+        }}
+      >
         {/* Close Button */}
         <button
           onClick={onClose}
           aria-label="Close modal"
           style={{
-            position: 'absolute', top: '16px', right: '16px',
-            width: '32px', height: '32px', borderRadius: '50%',
+            position: 'absolute', top: '14px', right: '14px',
+            width: '30px', height: '30px', borderRadius: '50%',
             backgroundColor: 'rgba(255, 255, 255, 0.08)',
             border: '1px solid rgba(255, 255, 255, 0.15)',
-            color: '#aaa', fontSize: '18px',
+            color: '#aaa', fontSize: '16px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', transition: 'all 0.2s ease',
-            outline: 'none'
+            outline: 'none', zIndex: 10
           }}
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = '#fff'; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.color = '#aaa'; }}
@@ -162,27 +187,27 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
         </button>
 
         {/* Header Icon & Title */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '14px', paddingRight: '20px' }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            width: '56px', height: '56px', borderRadius: '50%',
+            width: '46px', height: '46px', borderRadius: '50%',
             background: checkStatus === 'confirmed'
               ? 'linear-gradient(135deg, rgba(72,164,100,0.3), rgba(0,242,254,0.2))'
               : 'linear-gradient(135deg, rgba(0,242,254,0.2), rgba(127,0,255,0.3))',
             border: checkStatus === 'confirmed' ? '1px solid #48a464' : '1px solid #00f2fe',
-            fontSize: '26px', marginBottom: '12px'
+            fontSize: '22px', marginBottom: '8px'
           }}>
             {checkStatus === 'confirmed' ? '✅' : '💳'}
           </div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '21px', fontWeight: '700', letterSpacing: '-0.3px', color: '#fff' }}>
+          <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: '700', letterSpacing: '-0.3px', color: '#fff' }}>
             {checkStatus === 'confirmed' ? 'Payment Verified!' : 'Complete Payment'}
           </h3>
           <span style={{
             background: checkStatus === 'confirmed'
               ? 'linear-gradient(90deg, #48a464, #00f2fe)'
               : 'linear-gradient(90deg, #00f2fe, #7f00ff)',
-            color: '#ffffff', padding: '4px 14px', borderRadius: '20px',
-            fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase'
+            color: '#ffffff', padding: '3px 12px', borderRadius: '20px',
+            fontSize: '10px', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase'
           }}>
             {checkStatus === 'confirmed' ? '✔ Paid' : (order.paymentStatus || 'Pending Payment')}
           </span>
@@ -193,19 +218,19 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
           <div style={{
             backgroundColor: 'rgba(72,164,100,0.12)',
             border: '1px solid #48a464', borderRadius: '14px',
-            padding: '20px', marginBottom: '10px', textAlign: 'center'
+            padding: '16px', marginBottom: '10px', textAlign: 'center'
           }}>
-            <div style={{ fontSize: '16px', color: '#48a464', fontWeight: '700', marginBottom: '6px' }}>
+            <div style={{ fontSize: '15px', color: '#48a464', fontWeight: '700', marginBottom: '6px' }}>
               🎉 Payment Confirmed on Blockchain!
             </div>
-            <div style={{ fontSize: '13px', color: '#ccc', marginBottom: '12px' }}>
+            <div style={{ fontSize: '12px', color: '#ccc', marginBottom: '12px' }}>
               Your order has been updated and is now in progress.
             </div>
             {txHash && (
               <div style={{
-                fontSize: '11px', color: '#888', background: '#0a0b0d',
-                padding: '8px 12px', borderRadius: '8px', fontFamily: 'monospace',
-                wordBreak: 'break-all', marginBottom: '15px'
+                fontSize: '10px', color: '#888', background: '#0a0b0d',
+                padding: '8px 10px', borderRadius: '8px', fontFamily: 'monospace',
+                wordBreak: 'break-all', marginBottom: '12px'
               }}>
                 TX Hash: {txHash}
               </div>
@@ -214,8 +239,8 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
               onClick={onClose}
               style={{
                 width: '100%', background: 'linear-gradient(135deg, #00f2fe, #7f00ff)',
-                color: '#fff', border: 'none', padding: '14px', borderRadius: '12px',
-                fontWeight: '700', fontSize: '14px', cursor: 'pointer'
+                color: '#fff', border: 'none', padding: '12px', borderRadius: '10px',
+                fontWeight: '700', fontSize: '13px', cursor: 'pointer'
               }}
             >
               Done & Close
@@ -230,29 +255,29 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.03)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '14px', padding: '14px 16px', marginBottom: '18px',
-              fontSize: '13px'
+              borderRadius: '12px', padding: '10px 14px', marginBottom: '12px',
+              fontSize: '12px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <span style={{ color: '#8a94a6' }}>Order:</span>
-                <span style={{ fontWeight: '600', color: '#e1e7ef', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                <span style={{ fontWeight: '600', color: '#e1e7ef', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '220px' }}>
                   {order.name || order.type || 'Service Order'}
                 </span>
               </div>
               {order.trackingNumber && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <span style={{ color: '#8a94a6' }}>Tracking:</span>
                   <span style={{ fontFamily: 'monospace', color: '#00f2fe', fontWeight: '600' }}>{order.trackingNumber}</span>
                 </div>
               )}
               <div style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '10px', marginTop: '8px'
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '8px', marginTop: '6px'
               }}>
                 <span style={{ color: '#fff', fontWeight: '600' }}>Amount Due:</span>
                 <span style={{
-                  color: '#00f2fe', fontSize: '20px', fontWeight: '800',
-                  textShadow: '0 0 12px rgba(0,242,254,0.4)'
+                  color: '#00f2fe', fontSize: '18px', fontWeight: '800',
+                  textShadow: '0 0 10px rgba(0,242,254,0.4)'
                 }}>
                   ${order.price || 0} USD
                 </span>
@@ -260,8 +285,8 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
             </div>
 
             {/* Currency Select */}
-            <div style={{ marginBottom: '18px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#8a94a6', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Select Payment Coin
               </label>
               <div style={{ position: 'relative' }}>
@@ -269,13 +294,13 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
                   value={selectedCrypto}
                   onChange={(e) => handleCryptoSelect(e.target.value)}
                   style={{
-                    width: '100%', padding: '12px 16px', borderRadius: '12px',
+                    width: '100%', padding: '10px 14px', borderRadius: '10px',
                     backgroundColor: '#1a1e26', color: '#ffffff',
                     border: '1px solid rgba(0, 242, 254, 0.4)',
-                    fontSize: '14px', fontWeight: '700', outline: 'none',
+                    fontSize: '13px', fontWeight: '700', outline: 'none',
                     cursor: 'pointer', boxSizing: 'border-box',
                     appearance: 'none', WebkitAppearance: 'none',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
                   }}
                 >
                   {Object.keys(cryptoLabels).map(coinKey => (
@@ -284,7 +309,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
                     </option>
                   ))}
                 </select>
-                <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#00f2fe', fontSize: '12px' }}>
+                <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#00f2fe', fontSize: '11px' }}>
                   ▼
                 </div>
               </div>
@@ -292,28 +317,28 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
 
             {/* QR Code toggle / view */}
             {qrCodeUrl && (
-              <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+              <div style={{ textAlign: 'center', marginBottom: '12px' }}>
                 <button
                   type="button"
                   onClick={() => setShowQR(!showQR)}
                   style={{
                     background: 'transparent', border: 'none', color: '#00f2fe',
-                    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
-                    textDecoration: 'underline', padding: '4px', outline: 'none'
+                    fontSize: '11px', fontWeight: '600', cursor: 'pointer',
+                    textDecoration: 'underline', padding: '2px', outline: 'none'
                   }}
                 >
-                  {showQR ? 'Hide QR Code' : '📷 Show QR Code'}
+                  {showQR ? '▲ Hide QR Code' : '📷 Show QR Code'}
                 </button>
                 {showQR && (
-                  <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
+                  <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center' }}>
                     <div style={{
-                      background: '#ffffff', padding: '10px', borderRadius: '14px',
-                      boxShadow: '0 8px 25px rgba(0, 242, 254, 0.2)'
+                      background: '#ffffff', padding: '8px', borderRadius: '12px',
+                      boxShadow: '0 6px 20px rgba(0, 242, 254, 0.2)'
                     }}>
                       <img
                         src={qrCodeUrl}
                         alt="Deposit Address QR Code"
-                        style={{ width: '150px', height: '150px', display: 'block' }}
+                        style={{ width: '120px', height: '120px', display: 'block' }}
                       />
                     </div>
                   </div>
@@ -321,19 +346,19 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
               </div>
             )}
 
-            {/* Deposit Address Box (Mobile Responsive - No Horizontal Overflow) */}
+            {/* Deposit Address Box (Mobile Responsive & Compact) */}
             <div style={{
               backgroundColor: '#0a0c10',
               border: '1px dashed rgba(0, 242, 254, 0.35)',
-              borderRadius: '14px', padding: '14px', marginBottom: '18px'
+              borderRadius: '12px', padding: '12px', marginBottom: '12px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '11px', fontWeight: '700', color: '#8a94a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: '#8a94a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Deposit Address ({selectedCrypto})
                 </span>
                 {copied === selectedCrypto && (
-                  <span style={{ fontSize: '11px', color: '#48a464', fontWeight: '700' }}>
-                    ✓ Copied to clipboard
+                  <span style={{ fontSize: '10px', color: '#48a464', fontWeight: '700' }}>
+                    ✓ Copied!
                   </span>
                 )}
               </div>
@@ -342,10 +367,10 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
               <div style={{
                 backgroundColor: '#141820',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '10px', padding: '12px',
+                borderRadius: '8px', padding: '10px',
                 color: '#00f2fe', fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-                fontSize: '13px', lineHeight: '1.4', wordBreak: 'break-all',
-                marginBottom: '10px', userSelect: 'all', textAlign: 'center',
+                fontSize: '12px', lineHeight: '1.35', wordBreak: 'break-all',
+                marginBottom: '8px', userSelect: 'all', textAlign: 'center',
                 boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
               }}>
                 {displayAddress || 'Loading wallet address...'}
@@ -360,11 +385,11 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
                   background: copied === selectedCrypto
                     ? 'linear-gradient(135deg, #48a464, #2e7d32)'
                     : 'linear-gradient(135deg, #00f2fe, #7f00ff)',
-                  color: '#ffffff', border: 'none', padding: '12px',
-                  borderRadius: '10px', cursor: 'pointer',
-                  fontWeight: '700', fontSize: '13px',
+                  color: '#ffffff', border: 'none', padding: '10px',
+                  borderRadius: '8px', cursor: 'pointer',
+                  fontWeight: '700', fontSize: '12px',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  boxShadow: '0 4px 15px rgba(0, 242, 254, 0.2)',
+                  boxShadow: '0 4px 12px rgba(0, 242, 254, 0.2)',
                   transition: 'all 0.2s ease', outline: 'none'
                 }}
               >
@@ -375,20 +400,20 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
             {/* Checking Status banner */}
             {checkStatus === 'checking' && (
               <div style={{
-                textAlign: 'center', padding: '12px', marginBottom: '16px',
-                backgroundColor: 'rgba(0, 242, 254, 0.08)', borderRadius: '12px',
-                border: '1px solid rgba(0, 242, 254, 0.3)', fontSize: '13px', color: '#00f2fe',
+                textAlign: 'center', padding: '10px', marginBottom: '12px',
+                backgroundColor: 'rgba(0, 242, 254, 0.08)', borderRadius: '10px',
+                border: '1px solid rgba(0, 242, 254, 0.3)', fontSize: '12px', color: '#00f2fe',
                 fontWeight: '600'
               }}>
-                <span style={{ display: 'inline-block', animation: 'spinSlow 1.5s linear infinite', marginRight: '8px' }}>⏳</span>
-                Scanning blockchain for your transfer... {attempts > 0 && `(Check #${attempts})`}
+                <span style={{ display: 'inline-block', animation: 'spinSlow 1.5s linear infinite', marginRight: '6px' }}>⏳</span>
+                Scanning blockchain... {attempts > 0 && `(Check #${attempts})`}
               </div>
             )}
             {checkStatus === 'idle' && attempts > 0 && (
               <div style={{
-                textAlign: 'center', padding: '10px', marginBottom: '16px',
-                backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px',
-                fontSize: '12px', color: '#8a94a6'
+                textAlign: 'center', padding: '8px', marginBottom: '12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px',
+                fontSize: '11px', color: '#8a94a6'
               }}>
                 Payment not detected yet. Auto-checking every 30s... (Check #{attempts})
               </div>
@@ -396,11 +421,11 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
 
             {/* Helper Note */}
             <div style={{
-              fontSize: '11px', color: '#8a94a6', lineHeight: '1.5',
-              marginBottom: '20px', backgroundColor: 'rgba(255, 255, 255, 0.02)',
-              padding: '10px 12px', borderRadius: '8px', borderLeft: '3px solid #00f2fe'
+              fontSize: '10px', color: '#8a94a6', lineHeight: '1.4',
+              marginBottom: '14px', backgroundColor: 'rgba(255, 255, 255, 0.02)',
+              padding: '8px 10px', borderRadius: '8px', borderLeft: '3px solid #00f2fe'
             }}>
-              📌 Send exact amount of <strong>${order.price || 0} USD</strong> equivalent in {cryptoLabels[selectedCrypto]}. On-chain confirmation is automatically verified.
+              📌 Send exact amount of <strong>${order.price || 0} USD</strong> in {cryptoLabels[selectedCrypto]}. Automatically verified on blockchain.
             </div>
 
             {/* Check Payment CTA Button */}
@@ -413,12 +438,12 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
                 background: checkStatus === 'checking'
                   ? '#262b36'
                   : 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)',
-                color: '#ffffff', border: 'none', padding: '15px',
-                borderRadius: '12px', fontWeight: '800', fontSize: '15px',
+                color: '#ffffff', border: 'none', padding: '13px',
+                borderRadius: '10px', fontWeight: '800', fontSize: '14px',
                 letterSpacing: '0.3px',
                 cursor: checkStatus === 'checking' ? 'not-allowed' : 'pointer',
                 opacity: !displayAddress ? 0.6 : 1,
-                boxShadow: '0 6px 20px rgba(0, 242, 254, 0.25)',
+                boxShadow: '0 6px 18px rgba(0, 242, 254, 0.25)',
                 transition: 'all 0.2s ease', outline: 'none'
               }}
             >
