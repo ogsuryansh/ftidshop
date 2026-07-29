@@ -7,6 +7,7 @@ export default function ReceiptsSubmitOrder() {
   const [note, setNote] = useState('');
   const [fileData, setFileData] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingTransition, setLoadingTransition] = useState(false);
   const [createdOrder, setCreatedOrder] = useState(null);
 
   const handleFileChange = (e) => {
@@ -48,6 +49,7 @@ export default function ReceiptsSubmitOrder() {
 
     const price = categoryPrices[category] || 15;
     setSubmitting(true);
+    setLoadingTransition(true);
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/orders`, {
@@ -66,17 +68,23 @@ export default function ReceiptsSubmitOrder() {
         })
       });
       const data = await res.json();
-      setSubmitting(false);
 
       if (res.ok) {
-        setCreatedOrder(data);
-        setCategory(''); setNote(''); setFileData(null);
+        setTimeout(() => {
+          setSubmitting(false);
+          setLoadingTransition(false);
+          setCreatedOrder(data);
+          setCategory(''); setNote(''); setFileData(null);
+        }, 1200);
       } else {
+        setSubmitting(false);
+        setLoadingTransition(false);
         alert(data.error || "Failed to create order.");
       }
     } catch (err) {
       console.error(err);
       setSubmitting(false);
+      setLoadingTransition(false);
       alert("Error submitting order.");
     }
   };
@@ -122,6 +130,40 @@ export default function ReceiptsSubmitOrder() {
           </button>
         </div>
       </form>
+
+      {/* Full screen order processing loader overlay */}
+      {loadingTransition && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          backgroundColor: 'rgba(5, 7, 10, 0.9)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 99999, color: '#ffffff'
+        }}>
+          <style>{`
+            @keyframes spinOrderReceipt {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+          <div style={{
+            width: '64px', height: '64px', borderRadius: '50%',
+            border: '3px solid rgba(0, 242, 254, 0.15)',
+            borderTopColor: '#00f2fe',
+            animation: 'spinOrderReceipt 0.9s linear infinite',
+            marginBottom: '20px',
+            boxShadow: '0 0 30px rgba(0,242,254,0.3)'
+          }} />
+          <h3 style={{ fontSize: '20px', fontWeight: '700', margin: '0 0 8px 0', color: '#fff', letterSpacing: '-0.3px' }}>
+            Processing Your Receipt Order...
+          </h3>
+          <p style={{ color: '#00f2fe', fontSize: '13px', margin: 0, fontWeight: '600', letterSpacing: '0.3px' }}>
+            Generating Secure Crypto Payment Gateway...
+          </p>
+        </div>
+      )}
 
       {createdOrder && (
         <PaymentModal order={createdOrder} onClose={() => setCreatedOrder(null)} />
