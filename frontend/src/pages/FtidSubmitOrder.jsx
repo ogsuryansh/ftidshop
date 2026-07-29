@@ -280,12 +280,35 @@ export default function FtidSubmitOrder() {
 
       {/* Description Popup Modal */}
       {activeDesc && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#222', padding: '25px', borderRadius: '10px', maxWidth: '450px', width: '90%', border: '1px solid #444', color: '#fff' }}>
-            <h3 style={{ marginTop: 0, color: '#00f2fe', fontSize: '18px' }}>{activeDesc.name}</h3>
-            <p style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.5', margin: '15px 0' }}>{activeDesc.desc}</p>
+        <div style={{
+          position: 'fixed', inset: 0,
+          backgroundColor: 'rgba(5, 7, 10, 0.88)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 9999, padding: '16px', overflowY: 'auto'
+        }}>
+          <div style={{
+            backgroundColor: '#12151a',
+            background: 'linear-gradient(145deg, #161a22 0%, #0e1014 100%)',
+            padding: '24px', borderRadius: '16px', maxWidth: '480px', width: '100%',
+            border: '1px solid rgba(0, 242, 254, 0.3)', color: '#fff',
+            maxHeight: '90vh', overflowY: 'auto', margin: 'auto',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.8)', position: 'relative'
+          }}>
+            <h3 style={{ marginTop: 0, color: '#00f2fe', fontSize: '18px', fontWeight: '700' }}>{activeDesc.name}</h3>
+            <p style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.6', margin: '15px 0' }}>{activeDesc.desc}</p>
             <div style={{ textAlign: 'right' }}>
-              <button onClick={() => setActiveDesc(null)} style={{ backgroundColor: '#444', color: '#fff', border: 'none', padding: '8px 20px', borderRadius: '5px', cursor: 'pointer' }}>Close</button>
+              <button
+                onClick={() => setActiveDesc(null)}
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.08)', color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.15)', padding: '10px 24px',
+                  borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px'
+                }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

@@ -608,51 +608,85 @@ export default function AdminDashboard() {
 
       {/* Product Add/Edit Modal */}
       {isProductModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: '#1c1e1f', border: '1px solid #333', borderRadius: '10px', width: '100%', maxWidth: '500px', padding: '25px', color: '#fff', boxSizing: 'border-box' }}>
-            <h3 style={{ marginTop: 0, color: '#00f2fe', fontSize: '18px', marginBottom: '20px' }}>
+        <div style={{
+          position: 'fixed', inset: 0,
+          backgroundColor: 'rgba(5, 7, 10, 0.88)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 9999, padding: '16px', overflowY: 'auto'
+        }}>
+          <div style={{
+            backgroundColor: '#12151a',
+            background: 'linear-gradient(145deg, #161a22 0%, #0e1014 100%)',
+            border: '1px solid rgba(0, 242, 254, 0.3)',
+            borderRadius: '20px',
+            width: '100%', maxWidth: '520px',
+            padding: '24px 20px', color: '#fff', boxSizing: 'border-box',
+            maxHeight: '90vh', overflowY: 'auto', margin: 'auto',
+            position: 'relative', boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
+          }}>
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setIsProductModalOpen(false)}
+              aria-label="Close modal"
+              style={{
+                position: 'absolute', top: '16px', right: '16px',
+                width: '32px', height: '32px', borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                color: '#aaa', fontSize: '18px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', outline: 'none'
+              }}
+            >
+              ✕
+            </button>
+
+            <h3 style={{ marginTop: 0, color: '#00f2fe', fontSize: '20px', fontWeight: '700', marginBottom: '20px', paddingRight: '35px' }}>
               {editingProduct ? '✏️ Edit Product / Method' : '➕ Add New Product / Method'}
             </h3>
             <form onSubmit={handleSaveProduct} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Category / Country</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category / Country</label>
                 <input
                   type="text"
                   required
                   placeholder='e.g. Insider Scans "Only tracking needed" or United States US'
                   value={productForm.category}
                   onChange={e => setProductForm({ ...productForm, category: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Courier</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Courier</label>
                 <input
                   type="text"
                   required
                   placeholder='e.g. UPS, FedEx, USPS, Canada Post, DHL'
                   value={productForm.courier}
                   onChange={e => setProductForm({ ...productForm, courier: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Method Name</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Method Name</label>
                 <input
                   type="text"
                   required
                   placeholder='e.g. Rts insider city/any state'
                   value={productForm.name}
                   onChange={e => setProductForm({ ...productForm, name: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px' }}
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '15px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Price ($ USD)</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Price ($ USD)</label>
                   <input
                     type="number"
                     required
@@ -661,40 +695,40 @@ export default function AdminDashboard() {
                     placeholder='70'
                     value={productForm.price}
                     onChange={e => setProductForm({ ...productForm, price: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px' }}
                   />
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Badge Color</label>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Badge Color</label>
                   <input
                     type="color"
                     value={productForm.badgeColor}
                     onChange={e => setProductForm({ ...productForm, badgeColor: e.target.value })}
-                    style={{ width: '100%', height: '40px', padding: '2px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', cursor: 'pointer' }}
+                    style={{ width: '100%', height: '45px', padding: '2px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Badge Text (Optional)</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Badge Text (Optional)</label>
                 <input
                   type="text"
                   placeholder='e.g. Click to read description or Label is required'
                   value={productForm.badge}
                   onChange={e => setProductForm({ ...productForm, badge: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none' }}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#aaa', marginBottom: '5px' }}>Description (Optional)</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Description (Optional)</label>
                 <textarea
                   rows="3"
                   placeholder='Detailed description shown to user when clicking description badge'
                   value={productForm.desc}
                   onChange={e => setProductForm({ ...productForm, desc: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '5px', backgroundColor: '#141617', border: '1px solid #333', color: '#fff', outline: 'none', resize: 'vertical' }}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontSize: '13px' }}
                 />
               </div>
 
@@ -704,21 +738,22 @@ export default function AdminDashboard() {
                   id="activeCheck"
                   checked={productForm.active}
                   onChange={e => setProductForm({ ...productForm, active: e.target.checked })}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#00f2fe' }}
                 />
-                <label htmlFor="activeCheck" style={{ fontSize: '13px', color: '#ccc', cursor: 'pointer' }}>Active in Store Catalog</label>
+                <label htmlFor="activeCheck" style={{ fontSize: '13px', color: '#ccc', cursor: 'pointer', fontWeight: '600' }}>Active in Store Catalog</label>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '15px' }}>
                 <button
                   type="button"
                   onClick={() => setIsProductModalOpen(false)}
-                  style={{ backgroundColor: '#444', color: '#fff', border: 'none', padding: '8px 18px', borderRadius: '5px', cursor: 'pointer' }}
+                  style={{ backgroundColor: 'rgba(255,255,255,0.08)', color: '#ccc', border: '1px solid rgba(255,255,255,0.15)', padding: '12px 20px', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '8px 24px', borderRadius: '5px', fontWeight: 'bold', cursor: 'pointer' }}
+                  style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 28px', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '13px', boxShadow: '0 4px 15px rgba(0,242,254,0.3)' }}
                 >
                   {editingProduct ? 'Save Changes' : 'Create Product'}
                 </button>
