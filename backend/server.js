@@ -35,7 +35,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -51,17 +50,20 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Connect to MongoDB Atlas (Serverless compatible)
+const DEFAULT_MONGO_URI = 'mongodb://vishalgiri0044_db_user:QKx6CHwd0yXdfa7r@ac-j0ezqav-shard-00-00.ahz11bx.mongodb.net:27017,ac-j0ezqav-shard-00-01.ahz11bx.mongodb.net:27017,ac-j0ezqav-shard-00-02.ahz11bx.mongodb.net:27017/arpanFtid?ssl=true&replicaSet=atlas-13luhs-shard-0&authSource=admin&retryWrites=true&w=majority';
+
 let isConnected = false;
 const connectDB = async () => {
     if (isConnected || mongoose.connection.readyState >= 1) {
         isConnected = true;
         return;
     }
+    const mongoUri = process.env.MONGO_URI || DEFAULT_MONGO_URI;
+    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
+    isConnected = true;
+    console.log('MongoDB Connected to Atlas...');
+    
     try {
-        await mongoose.connect(process.env.MONGO_URI);
-        isConnected = true;
-        console.log('MongoDB Connected to Atlas...');
-        
         const adminCount = await Admin.countDocuments();
         if (adminCount === 0) {
             const salt = await bcrypt.genSalt(10);
@@ -99,13 +101,18 @@ const connectDB = async () => {
             console.log('Initial product catalog seeded successfully.');
         }
     } catch (err) {
-        console.error('MongoDB connection error:', err);
+        console.error('MongoDB seeding error:', err);
     }
 };
 
 app.use(async (req, res, next) => {
-    await connectDB();
-    next();
+    try {
+        await connectDB();
+        next();
+    } catch (err) {
+        console.error('MongoDB connection error:', err);
+        res.status(500).json({ error: 'Database connection error: ' + err.message });
+    }
 });
 
 app.post('/api/register', async (req, res) => {
