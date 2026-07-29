@@ -77,9 +77,11 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
 
     var heroContainer = document.getElementById('background_main');
-    var canvasWidth = heroContainer.clientWidth;
-    var canvasHeight = heroContainer.clientHeight;
-    renderer.setSize(canvasWidth, canvasHeight);
+    if (heroContainer) {
+        var canvasWidth = heroContainer.clientWidth;
+        var canvasHeight = heroContainer.clientHeight;
+        renderer.setSize(canvasWidth, canvasHeight);
+    }
 }
 
 function animate() {
