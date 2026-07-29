@@ -8,14 +8,15 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   const [checkStatus, setCheckStatus] = useState('idle'); // idle | checking | confirmed | failed
   const [txHash, setTxHash] = useState('');
   const [attempts, setAttempts] = useState(0);
+  const [showQR, setShowQR] = useState(true);
   const pollRef = useRef(null);
 
   if (!order) return null;
 
   // Default fallback wallet addresses
   const defaultAddresses = {
-    BTC: '1F5Y3DYgZtTNLGkiyPz4vt762665qgnBpJ',
     USDT_TRC20: 'TBtgkq5GTy1q4thASK23hmfRrJ8grLD4FR',
+    BTC: '1F5Y3DYgZtTNLGkiyPz4vt762665qgnBpJ',
     LTC: 'Lhkby8mb1DgZfVsQWrSopScTeNf252qi9Q',
     SOL: 'AigcpMzqZw9asMFVSdNi8T4MAHHujykEUdyUjTH9F6JG',
     ETH: '0x54defcf541d174e7443c1ada58875e3e04ca5178',
@@ -76,172 +77,355 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   }, []);
 
   const handleCopy = (text, key) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
     setCopied(key);
-    setTimeout(() => setCopied(''), 2000);
+    setTimeout(() => setCopied(''), 2500);
   };
 
-  const displayAddress = walletAddress || defaultAddresses[selectedCrypto] || 'Loading...';
+  const displayAddress = walletAddress || defaultAddresses[selectedCrypto] || '';
 
   const cryptoLabels = {
-    BTC: 'Bitcoin (BTC)',
     USDT_TRC20: 'USDT (TRC20)',
+    BTC: 'Bitcoin (BTC)',
     LTC: 'Litecoin (LTC)',
     SOL: 'Solana (SOL)',
     ETH: 'Ethereum (ETH)',
     TON: 'TON'
   };
 
+  const cryptoIcons = {
+    USDT_TRC20: '₮',
+    BTC: '₿',
+    LTC: 'Ł',
+    SOL: '◎',
+    ETH: 'Ξ',
+    TON: '💎'
+  };
+
+  const qrCodeUrl = displayAddress 
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(displayAddress)}`
+    : '';
+
   return (
     <div style={{
-      position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-      padding: '20px', overflowY: 'auto'
+      position: 'fixed', inset: 0,
+      backgroundColor: 'rgba(5, 7, 10, 0.88)',
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 9999, padding: '16px', overflowY: 'auto'
     }}>
+      <style>{`
+        @keyframes pulseGlow {
+          0% { box-shadow: 0 0 15px rgba(0, 242, 254, 0.2); }
+          50% { box-shadow: 0 0 30px rgba(0, 242, 254, 0.45); }
+          100% { box-shadow: 0 0 15px rgba(0, 242, 254, 0.2); }
+        }
+        @keyframes spinSlow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+
       <div style={{
-        backgroundColor: '#1e2022', border: '1px solid #333', borderRadius: '12px',
-        width: '100%', maxWidth: '550px', padding: '25px', color: '#fff', boxSizing: 'border-box',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.5)', position: 'relative'
+        backgroundColor: '#12151a',
+        background: 'linear-gradient(145deg, #161a22 0%, #0e1014 100%)',
+        border: '1px solid rgba(0, 242, 254, 0.25)',
+        borderRadius: '20px',
+        width: '100%', maxWidth: '480px',
+        padding: '24px 20px',
+        color: '#ffffff',
+        boxSizing: 'border-box',
+        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8)',
+        position: 'relative',
+        animation: 'pulseGlow 4s infinite ease-in-out'
       }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', color: '#888', fontSize: '22px', cursor: 'pointer' }}>
-          &times;
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          aria-label="Close modal"
+          style={{
+            position: 'absolute', top: '16px', right: '16px',
+            width: '32px', height: '32px', borderRadius: '50%',
+            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: '#aaa', fontSize: '18px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', transition: 'all 0.2s ease',
+            outline: 'none'
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.color = '#aaa'; }}
+        >
+          ✕
         </button>
 
-        {/* Header */}
+        {/* Header Icon & Title */}
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: checkStatus === 'confirmed' ? 'rgba(72,164,100,0.2)' : 'rgba(0, 242, 254, 0.15)', color: checkStatus === 'confirmed' ? '#48a464' : '#00f2fe', fontSize: '26px', marginBottom: '10px' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            width: '56px', height: '56px', borderRadius: '50%',
+            background: checkStatus === 'confirmed'
+              ? 'linear-gradient(135deg, rgba(72,164,100,0.3), rgba(0,242,254,0.2))'
+              : 'linear-gradient(135deg, rgba(0,242,254,0.2), rgba(127,0,255,0.3))',
+            border: checkStatus === 'confirmed' ? '1px solid #48a464' : '1px solid #00f2fe',
+            fontSize: '26px', marginBottom: '12px'
+          }}>
             {checkStatus === 'confirmed' ? '✅' : '💳'}
           </div>
-          <h3 style={{ margin: '0 0 5px 0', fontSize: '20px', fontWeight: '600' }}>
-            {checkStatus === 'confirmed' ? 'Payment Confirmed!' : 'Complete Your Payment'}
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '21px', fontWeight: '700', letterSpacing: '-0.3px', color: '#fff' }}>
+            {checkStatus === 'confirmed' ? 'Payment Verified!' : 'Complete Payment'}
           </h3>
-          <span style={{ background: checkStatus === 'confirmed' ? 'linear-gradient(90deg,#48a464,#00f2fe)' : 'linear-gradient(90deg, #00f2fe, #7f00ff)', color: '#fff', padding: '4px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold' }}>
-            {checkStatus === 'confirmed' ? '✔ Paid' : order.paymentStatus || 'Pending Payment'}
+          <span style={{
+            background: checkStatus === 'confirmed'
+              ? 'linear-gradient(90deg, #48a464, #00f2fe)'
+              : 'linear-gradient(90deg, #00f2fe, #7f00ff)',
+            color: '#ffffff', padding: '4px 14px', borderRadius: '20px',
+            fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px', textTransform: 'uppercase'
+          }}>
+            {checkStatus === 'confirmed' ? '✔ Paid' : (order.paymentStatus || 'Pending Payment')}
           </span>
         </div>
 
-        {/* Confirmed state */}
+        {/* Confirmed view */}
         {checkStatus === 'confirmed' && (
-          <div style={{ backgroundColor: 'rgba(72,164,100,0.1)', border: '1px solid #48a464', borderRadius: '8px', padding: '15px', marginBottom: '20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '14px', color: '#48a464', fontWeight: '600', marginBottom: '6px' }}>🎉 Payment detected on blockchain!</div>
-            <div style={{ fontSize: '12px', color: '#aaa' }}>Your order is now being processed.</div>
-            {txHash && <div style={{ fontSize: '11px', color: '#666', marginTop: '8px', fontFamily: 'monospace', wordBreak: 'break-all' }}>TX: {txHash}</div>}
-            <button onClick={onClose} style={{ marginTop: '15px', background: 'linear-gradient(135deg,#00f2fe,#7f00ff)', color: '#fff', border: 'none', padding: '10px 30px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-              Close
+          <div style={{
+            backgroundColor: 'rgba(72,164,100,0.12)',
+            border: '1px solid #48a464', borderRadius: '14px',
+            padding: '20px', marginBottom: '10px', textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '16px', color: '#48a464', fontWeight: '700', marginBottom: '6px' }}>
+              🎉 Payment Confirmed on Blockchain!
+            </div>
+            <div style={{ fontSize: '13px', color: '#ccc', marginBottom: '12px' }}>
+              Your order has been updated and is now in progress.
+            </div>
+            {txHash && (
+              <div style={{
+                fontSize: '11px', color: '#888', background: '#0a0b0d',
+                padding: '8px 12px', borderRadius: '8px', fontFamily: 'monospace',
+                wordBreak: 'break-all', marginBottom: '15px'
+              }}>
+                TX Hash: {txHash}
+              </div>
+            )}
+            <button
+              onClick={onClose}
+              style={{
+                width: '100%', background: 'linear-gradient(135deg, #00f2fe, #7f00ff)',
+                color: '#fff', border: 'none', padding: '14px', borderRadius: '12px',
+                fontWeight: '700', fontSize: '14px', cursor: 'pointer'
+              }}
+            >
+              Done & Close
             </button>
           </div>
         )}
 
-        {/* Payment flow (hidden after confirmed) */}
-        {checkStatus !== 'confirmed' && (<>
-          {/* Order summary */}
-          <div style={{ backgroundColor: '#141617', padding: '15px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', border: '1px solid #282a2c' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ color: '#aaa' }}>Order Type:</span>
-              <span style={{ fontWeight: '500' }}>{order.type || 'Order'} ({order.method || order.country || 'Standard'})</span>
+        {/* Payment Flow */}
+        {checkStatus !== 'confirmed' && (
+          <>
+            {/* Summary Box */}
+            <div style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px', padding: '14px 16px', marginBottom: '18px',
+              fontSize: '13px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ color: '#8a94a6' }}>Order:</span>
+                <span style={{ fontWeight: '600', color: '#e1e7ef', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                  {order.name || order.type || 'Service Order'}
+                </span>
+              </div>
+              {order.trackingNumber && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ color: '#8a94a6' }}>Tracking:</span>
+                  <span style={{ fontFamily: 'monospace', color: '#00f2fe', fontWeight: '600' }}>{order.trackingNumber}</span>
+                </div>
+              )}
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '10px', marginTop: '8px'
+              }}>
+                <span style={{ color: '#fff', fontWeight: '600' }}>Amount Due:</span>
+                <span style={{
+                  color: '#00f2fe', fontSize: '20px', fontWeight: '800',
+                  textShadow: '0 0 12px rgba(0,242,254,0.4)'
+                }}>
+                  ${order.price || 0} USD
+                </span>
+              </div>
             </div>
-            {order.trackingNumber && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ color: '#aaa' }}>Tracking:</span>
-                <span style={{ fontFamily: 'monospace', color: '#ddd' }}>{order.trackingNumber}</span>
+
+            {/* Currency Select */}
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Select Payment Coin
+              </label>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={selectedCrypto}
+                  onChange={(e) => handleCryptoSelect(e.target.value)}
+                  style={{
+                    width: '100%', padding: '12px 16px', borderRadius: '12px',
+                    backgroundColor: '#1a1e26', color: '#ffffff',
+                    border: '1px solid rgba(0, 242, 254, 0.4)',
+                    fontSize: '14px', fontWeight: '700', outline: 'none',
+                    cursor: 'pointer', boxSizing: 'border-box',
+                    appearance: 'none', WebkitAppearance: 'none',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                  }}
+                >
+                  {Object.keys(cryptoLabels).map(coinKey => (
+                    <option key={coinKey} value={coinKey} style={{ backgroundColor: '#161a22', color: '#fff' }}>
+                      {cryptoIcons[coinKey]} {cryptoLabels[coinKey]}
+                    </option>
+                  ))}
+                </select>
+                <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#00f2fe', fontSize: '12px' }}>
+                  ▼
+                </div>
+              </div>
+            </div>
+
+            {/* QR Code toggle / view */}
+            {qrCodeUrl && (
+              <div style={{ textAlign: 'center', marginBottom: '18px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowQR(!showQR)}
+                  style={{
+                    background: 'transparent', border: 'none', color: '#00f2fe',
+                    fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                    textDecoration: 'underline', padding: '4px', outline: 'none'
+                  }}
+                >
+                  {showQR ? 'Hide QR Code' : '📷 Show QR Code'}
+                </button>
+                {showQR && (
+                  <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center' }}>
+                    <div style={{
+                      background: '#ffffff', padding: '10px', borderRadius: '14px',
+                      boxShadow: '0 8px 25px rgba(0, 242, 254, 0.2)'
+                    }}>
+                      <img
+                        src={qrCodeUrl}
+                        alt="Deposit Address QR Code"
+                        style={{ width: '150px', height: '150px', display: 'block' }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #282a2c', paddingTop: '8px', marginTop: '8px' }}>
-              <span style={{ color: '#aaa', fontWeight: '600' }}>Total Amount Due:</span>
-              <span style={{ color: '#00f2fe', fontSize: '18px', fontWeight: 'bold' }}>${order.price || 0} USD</span>
-            </div>
-          </div>
 
-          {/* Currency selector (Dropdown Select Method) */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', color: '#aaa', marginBottom: '8px', fontWeight: '500' }}>
-              Select Payment Currency Method
-            </label>
-            <select
-              value={selectedCrypto}
-              onChange={(e) => handleCryptoSelect(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px 15px',
-                borderRadius: '8px',
-                backgroundColor: '#282a2c',
-                color: '#fff',
-                border: '1px solid #00f2fe',
-                fontSize: '14px',
-                fontWeight: '600',
-                outline: 'none',
-                cursor: 'pointer',
-                boxSizing: 'border-box',
-                appearance: 'none',
-                WebkitAppearance: 'none',
-                MozAppearance: 'none',
-                backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2300f2fe%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E")',
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 15px top 50%',
-                backgroundSize: '12px auto'
-              }}
-            >
-              <option value="USDT_TRC20" style={{ background: '#1e2022', color: '#fff' }}>USDT (TRC20)</option>
-              <option value="BTC" style={{ background: '#1e2022', color: '#fff' }}>Bitcoin (BTC)</option>
-              <option value="LTC" style={{ background: '#1e2022', color: '#fff' }}>Litecoin (LTC)</option>
-              <option value="SOL" style={{ background: '#1e2022', color: '#fff' }}>Solana (SOL)</option>
-              <option value="ETH" style={{ background: '#1e2022', color: '#fff' }}>Ethereum (ETH)</option>
-              <option value="TON" style={{ background: '#1e2022', color: '#fff' }}>TON</option>
-            </select>
-          </div>
+            {/* Deposit Address Box (Mobile Responsive - No Horizontal Overflow) */}
+            <div style={{
+              backgroundColor: '#0a0c10',
+              border: '1px dashed rgba(0, 242, 254, 0.35)',
+              borderRadius: '14px', padding: '14px', marginBottom: '18px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#8a94a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Deposit Address ({selectedCrypto})
+                </span>
+                {copied === selectedCrypto && (
+                  <span style={{ fontSize: '11px', color: '#48a464', fontWeight: '700' }}>
+                    ✓ Copied to clipboard
+                  </span>
+                )}
+              </div>
 
-          {/* Wallet address */}
-          <div style={{ backgroundColor: '#141617', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px dashed #444' }}>
-            <div style={{ fontSize: '12px', color: '#aaa', marginBottom: '6px' }}>
-              Deposit Address ({cryptoLabels[selectedCrypto]})
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input
-                type="text" readOnly value={displayAddress}
-                style={{ flex: 1, backgroundColor: '#0c0d0e', border: '1px solid #333', color: '#00f2fe', padding: '10px', borderRadius: '4px', fontFamily: 'monospace', fontSize: '13px', outline: 'none' }}
-              />
+              {/* Address display box with word-break */}
+              <div style={{
+                backgroundColor: '#141820',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '10px', padding: '12px',
+                color: '#00f2fe', fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+                fontSize: '13px', lineHeight: '1.4', wordBreak: 'break-all',
+                marginBottom: '10px', userSelect: 'all', textAlign: 'center',
+                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+              }}>
+                {displayAddress || 'Loading wallet address...'}
+              </div>
+
+              {/* Action Copy Button */}
               <button
-                type="button" onClick={() => handleCopy(displayAddress, selectedCrypto)}
-                style={{ background: 'linear-gradient(135deg, #00f2fe, #7f00ff)', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                type="button"
+                onClick={() => handleCopy(displayAddress, selectedCrypto)}
+                style={{
+                  width: '100%',
+                  background: copied === selectedCrypto
+                    ? 'linear-gradient(135deg, #48a464, #2e7d32)'
+                    : 'linear-gradient(135deg, #00f2fe, #7f00ff)',
+                  color: '#ffffff', border: 'none', padding: '12px',
+                  borderRadius: '10px', cursor: 'pointer',
+                  fontWeight: '700', fontSize: '13px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                  boxShadow: '0 4px 15px rgba(0, 242, 254, 0.2)',
+                  transition: 'all 0.2s ease', outline: 'none'
+                }}
               >
-                {copied === selectedCrypto ? 'Copied!' : 'Copy'}
+                {copied === selectedCrypto ? '✔ Address Copied!' : '📋 Copy Deposit Address'}
               </button>
             </div>
-          </div>
 
-          {/* Checking status */}
-          {checkStatus === 'checking' && (
-            <div style={{ textAlign: 'center', padding: '10px', marginBottom: '15px', backgroundColor: 'rgba(0,242,254,0.05)', borderRadius: '8px', border: '1px solid rgba(0,242,254,0.2)', fontSize: '13px', color: '#00f2fe' }}>
-              <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite', marginRight: '8px' }}>⏳</span>
-              Scanning blockchain for your transaction... {attempts > 0 && `(Check #${attempts})`}
+            {/* Checking Status banner */}
+            {checkStatus === 'checking' && (
+              <div style={{
+                textAlign: 'center', padding: '12px', marginBottom: '16px',
+                backgroundColor: 'rgba(0, 242, 254, 0.08)', borderRadius: '12px',
+                border: '1px solid rgba(0, 242, 254, 0.3)', fontSize: '13px', color: '#00f2fe',
+                fontWeight: '600'
+              }}>
+                <span style={{ display: 'inline-block', animation: 'spinSlow 1.5s linear infinite', marginRight: '8px' }}>⏳</span>
+                Scanning blockchain for your transfer... {attempts > 0 && `(Check #${attempts})`}
+              </div>
+            )}
+            {checkStatus === 'idle' && attempts > 0 && (
+              <div style={{
+                textAlign: 'center', padding: '10px', marginBottom: '16px',
+                backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: '10px',
+                fontSize: '12px', color: '#8a94a6'
+              }}>
+                Payment not detected yet. Auto-checking every 30s... (Check #{attempts})
+              </div>
+            )}
+
+            {/* Helper Note */}
+            <div style={{
+              fontSize: '11px', color: '#8a94a6', lineHeight: '1.5',
+              marginBottom: '20px', backgroundColor: 'rgba(255, 255, 255, 0.02)',
+              padding: '10px 12px', borderRadius: '8px', borderLeft: '3px solid #00f2fe'
+            }}>
+              📌 Send exact amount of <strong>${order.price || 0} USD</strong> equivalent in {cryptoLabels[selectedCrypto]}. On-chain confirmation is automatically verified.
             </div>
-          )}
-          {checkStatus === 'idle' && attempts > 0 && (
-            <div style={{ textAlign: 'center', padding: '8px', marginBottom: '15px', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '8px', fontSize: '12px', color: '#888' }}>
-              Payment not detected yet. Auto-checking every 30s... (Attempt {attempts})
-            </div>
-          )}
 
-          {/* Note */}
-          <div style={{ fontSize: '12px', color: '#888', lineHeight: '1.5', marginBottom: '20px', backgroundColor: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '6px' }}>
-            📌 <strong>Note:</strong> Send exact amount of <strong>${order.price || 0} USD</strong> equivalent in {cryptoLabels[selectedCrypto]}. Payment is automatically verified on the blockchain — no manual confirmation needed.
-          </div>
-
-          {/* CTA */}
-          <div style={{ display: 'flex', gap: '10px' }}>
+            {/* Check Payment CTA Button */}
             <button
-              type="button" onClick={startPolling} disabled={checkStatus === 'checking' || !walletAddress}
+              type="button"
+              onClick={startPolling}
+              disabled={checkStatus === 'checking' || !displayAddress}
               style={{
-                flex: 1, background: checkStatus === 'checking' ? '#333' : 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)',
-                color: '#fff', border: 'none', padding: '12px', borderRadius: '6px',
-                fontWeight: 'bold', cursor: checkStatus === 'checking' ? 'not-allowed' : 'pointer',
-                opacity: !walletAddress ? 0.6 : 1
+                width: '100%',
+                background: checkStatus === 'checking'
+                  ? '#262b36'
+                  : 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)',
+                color: '#ffffff', border: 'none', padding: '15px',
+                borderRadius: '12px', fontWeight: '800', fontSize: '15px',
+                letterSpacing: '0.3px',
+                cursor: checkStatus === 'checking' ? 'not-allowed' : 'pointer',
+                opacity: !displayAddress ? 0.6 : 1,
+                boxShadow: '0 6px 20px rgba(0, 242, 254, 0.25)',
+                transition: 'all 0.2s ease', outline: 'none'
               }}
             >
-              {checkStatus === 'checking' ? '🔍 Checking...' : attempts > 0 ? '🔄 Check Again' : '✅ I Have Sent Payment'}
+              {checkStatus === 'checking' ? '🔍 Scanning Blockchain...' : attempts > 0 ? '🔄 Check Again Now' : '✅ I Have Sent Payment'}
             </button>
-          </div>
-        </>)}
+          </>
+        )}
       </div>
     </div>
   );
