@@ -9,12 +9,12 @@ export default function BoxFallingAnimation() {
     const THREE = window.THREE;
     if (!THREE) return;
 
-    const width = container.clientWidth || 280;
-    const height = container.clientHeight || 280;
+    const width = container.clientWidth || 350;
+    const height = container.clientHeight || 350;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
-    camera.position.set(0, 15, 620);
+    camera.position.set(0, 20, 520);
 
     let renderer;
     try {
@@ -107,8 +107,8 @@ export default function BoxFallingAnimation() {
       createCourierTexture('SPX', '#ea580c', '#ffffff', '#2563eb')
     ];
 
-    // 1. Center Open Main FTID.SHOP Box (Compact Size: 95x68x95)
-    const mainBoxGeo = new THREE.BoxGeometry(95, 68, 95);
+    // 1. Center Open Main FTID.SHOP Box (Medium Balanced Size: 110x78x110)
+    const mainBoxGeo = new THREE.BoxGeometry(110, 78, 110);
     const sideDarkMat = new THREE.MeshBasicMaterial({ color: 0x0b0e14 });
     const ftidMat = new THREE.MeshBasicMaterial({ map: ftidTexture });
     const openTopMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe, transparent: true, opacity: 0.85 });
@@ -136,7 +136,7 @@ export default function BoxFallingAnimation() {
     }
 
     // 2. Upward Light Cone Rays
-    const coneGeo = THREE.CylinderGeometry ? new THREE.CylinderGeometry(95, 45, 150, 32, 1, true) : null;
+    const coneGeo = THREE.CylinderGeometry ? new THREE.CylinderGeometry(110, 50, 170, 32, 1, true) : null;
     if (coneGeo) {
       const coneMat = new THREE.MeshBasicMaterial({
         color: 0x00f2fe,
@@ -145,12 +145,12 @@ export default function BoxFallingAnimation() {
         side: THREE.DoubleSide
       });
       const lightCone = new THREE.Mesh(coneGeo, coneMat);
-      lightCone.position.set(0, 45, 0);
+      lightCone.position.set(0, 50, 0);
       scene.add(lightCone);
     }
 
     // 3. Bottom Platform Ring
-    const ringGeo = THREE.RingGeometry ? new THREE.RingGeometry(75, 115, 32) : null;
+    const ringGeo = THREE.RingGeometry ? new THREE.RingGeometry(85, 135, 32) : null;
     if (ringGeo) {
       const ringMat = new THREE.MeshBasicMaterial({
         color: 0x00f2fe,
@@ -160,30 +160,30 @@ export default function BoxFallingAnimation() {
       });
       const portalRing = new THREE.Mesh(ringGeo, ringMat);
       portalRing.rotation.x = Math.PI / 2;
-      portalRing.position.set(0, -70, 0);
+      portalRing.position.set(0, -75, 0);
       scene.add(portalRing);
     }
 
     // 4. Rising Light Particles
-    const particleCount = 40;
+    const particleCount = 45;
     const pGeo = new THREE.Geometry ? new THREE.Geometry() : null;
     const pVels = [];
 
     if (pGeo) {
       for (let i = 0; i < particleCount; i++) {
-        const x = (Math.random() - 0.5) * 60;
-        const y = -35 + Math.random() * 130;
-        const z = (Math.random() - 0.5) * 60;
+        const x = (Math.random() - 0.5) * 70;
+        const y = -35 + Math.random() * 150;
+        const z = (Math.random() - 0.5) * 70;
         pGeo.vertices.push(new THREE.Vector3(x, y, z));
         pVels.push({
-          vx: (Math.random() - 0.5) * 0.6,
-          vy: 1.2 + Math.random() * 1.6,
-          vz: (Math.random() - 0.5) * 0.6
+          vx: (Math.random() - 0.5) * 0.7,
+          vy: 1.4 + Math.random() * 1.8,
+          vz: (Math.random() - 0.5) * 0.7
         });
       }
       const pMat = THREE.ParticleBasicMaterial ? 
-        new THREE.ParticleBasicMaterial({ color: 0x00f2fe, size: 2.8, transparent: true, opacity: 0.85 }) :
-        new THREE.PointsMaterial({ color: 0x00f2fe, size: 2.8, transparent: true, opacity: 0.85 });
+        new THREE.ParticleBasicMaterial({ color: 0x00f2fe, size: 3.0, transparent: true, opacity: 0.85 }) :
+        new THREE.PointsMaterial({ color: 0x00f2fe, size: 3.0, transparent: true, opacity: 0.85 });
       
       const particleSys = THREE.ParticleSystem ? 
         new THREE.ParticleSystem(pGeo, pMat) : 
@@ -195,7 +195,7 @@ export default function BoxFallingAnimation() {
     const floatingBoxes = [];
 
     const createPoppingBox = () => {
-      const size = 20 + Math.random() * 5;
+      const size = 24 + Math.random() * 6;
       const boxGeo = new THREE.BoxGeometry(size, size, size);
       const texture = courierTextures[Math.floor(Math.random() * courierTextures.length)];
       
@@ -209,29 +209,29 @@ export default function BoxFallingAnimation() {
       }
 
       box.position.set(
-        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 25,
         -15,
-        (Math.random() - 0.5) * 20
+        (Math.random() - 0.5) * 25
       );
 
       const angle = Math.random() * Math.PI * 2;
-      const speedOut = 0.9 + Math.random() * 1.6;
+      const speedOut = 1.0 + Math.random() * 1.8;
 
       box.userData = {
         vx: Math.cos(angle) * speedOut,
-        vy: 3.2 + Math.random() * 2.0, // Upward pop impulse!
+        vy: 3.6 + Math.random() * 2.2, // Upward pop impulse!
         vz: Math.sin(angle) * speedOut,
         rotX: (Math.random() - 0.5) * 0.08,
         rotY: (Math.random() - 0.5) * 0.08,
         rotZ: (Math.random() - 0.5) * 0.08,
-        gravity: 0.10
+        gravity: 0.11
       };
 
       scene.add(box);
       floatingBoxes.push(box);
     };
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       createPoppingBox();
     }
 
@@ -244,7 +244,7 @@ export default function BoxFallingAnimation() {
       mainBox.rotation.y += 0.004;
 
       spawnTimer++;
-      if (spawnTimer % 22 === 0 && floatingBoxes.length < 12) {
+      if (spawnTimer % 21 === 0 && floatingBoxes.length < 13) {
         createPoppingBox();
       }
 
@@ -261,7 +261,7 @@ export default function BoxFallingAnimation() {
         box.rotation.y += box.userData.rotY;
         box.rotation.z += box.userData.rotZ;
 
-        if (box.position.y < -100) {
+        if (box.position.y < -115) {
           scene.remove(box);
           floatingBoxes.splice(i, 1);
         }
@@ -273,10 +273,10 @@ export default function BoxFallingAnimation() {
           pGeo.vertices[i].y += pVels[i].vy;
           pGeo.vertices[i].z += pVels[i].vz;
 
-          if (pGeo.vertices[i].y > 110) {
-            pGeo.vertices[i].x = (Math.random() - 0.5) * 30;
+          if (pGeo.vertices[i].y > 130) {
+            pGeo.vertices[i].x = (Math.random() - 0.5) * 35;
             pGeo.vertices[i].y = -30;
-            pGeo.vertices[i].z = (Math.random() - 0.5) * 30;
+            pGeo.vertices[i].z = (Math.random() - 0.5) * 35;
           }
         }
         pGeo.verticesNeedUpdate = true;
@@ -289,8 +289,8 @@ export default function BoxFallingAnimation() {
 
     const handleResize = () => {
       if (!container) return;
-      const w = container.clientWidth || 280;
-      const h = container.clientHeight || 280;
+      const w = container.clientWidth || 350;
+      const h = container.clientHeight || 350;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
@@ -313,8 +313,8 @@ export default function BoxFallingAnimation() {
       className="box_falling_container" 
       style={{
         width: '100%',
-        maxWidth: '280px',
-        height: '280px',
+        maxWidth: '350px',
+        height: '350px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
