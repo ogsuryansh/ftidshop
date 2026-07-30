@@ -261,7 +261,61 @@
 
   .hero_3d_container {
     height: 240px !important;
-  }
+  }/* Custom File Upload Dropzone */
+.custom_file_dropzone {
+  border: 2px dashed rgba(0, 242, 254, 0.3);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.custom_file_dropzone:hover {
+  border-color: rgba(0, 242, 254, 0.7);
+  background: rgba(0, 242, 254, 0.05);
+}
+
+.dropzone_placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.file_selected_box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(0, 242, 254, 0.1);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  padding: 12px 18px;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.btn_remove_file {
+  margin-left: auto;
+  background: rgba(255, 77, 77, 0.15);
+  border: 1px solid rgba(255, 77, 77, 0.3);
+  color: #ff4d4d;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.btn_remove_file:hover {
+  background: rgba(255, 77, 77, 0.3);
+  transform: scale(1.08);
+}
 
   .pt_12, .pb_12 {
     padding-top: 1.5rem !important;

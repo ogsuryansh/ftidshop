@@ -115,13 +115,45 @@ export default function ReceiptsSubmitOrder() {
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px', lineHeight: '1.4' }}>Upload Reference Document / Image (Stored in Database)</label>
-          <input type="file" onChange={handleFileChange} style={{ color: '#ccc', fontSize: '14px' }} />
-          {fileData && (
-            <div style={{ color: '#4caf50', fontSize: '12px', marginTop: '5px' }}>
-              Selected: {fileData.filename}
-            </div>
-          )}
+          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px', lineHeight: '1.4' }}>
+            Upload Reference Document / Image (Stored in Database)
+          </label>
+          <div 
+            onClick={() => document.getElementById('receipt_file_input').click()}
+            className="custom_file_dropzone"
+          >
+            <input 
+              id="receipt_file_input" 
+              type="file" 
+              onChange={handleFileChange} 
+              style={{ display: 'none' }} 
+            />
+            {fileData ? (
+              <div className="file_selected_box">
+                <i className='bx bx-file-find' style={{ fontSize: '28px', color: '#00f2fe' }}></i>
+                <div>
+                  <div style={{ color: '#00f2fe', fontWeight: '600', fontSize: '14px' }}>{fileData.filename}</div>
+                  <div style={{ color: '#888', fontSize: '12px' }}>File attached successfully</div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={(e) => { e.stopPropagation(); setFileData(null); }}
+                  className="btn_remove_file"
+                  title="Remove file"
+                >
+                  <i className='bx bx-x'></i>
+                </button>
+              </div>
+            ) : (
+              <div className="dropzone_placeholder">
+                <i className='bx bx-cloud-upload' style={{ fontSize: '36px', color: '#00f2fe', marginBottom: '6px' }}></i>
+                <div style={{ color: '#fff', fontSize: '14px', fontWeight: '500' }}>
+                  <span style={{ color: '#00f2fe', textDecoration: 'underline' }}>Click to upload</span> or drag & drop file
+                </div>
+                <div style={{ color: '#777', fontSize: '12px', marginTop: '4px' }}>PDF, PNG, JPG, JPEG or WEBP (Max 10MB)</div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
