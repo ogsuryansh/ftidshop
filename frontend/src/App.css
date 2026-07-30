@@ -188,6 +188,46 @@
     padding: 20px !important;
   }
 }
+
+@media (max-width: 768px) {
+  header .logo {
+    font-size: 1.4rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  header .logo span {
+    display: inline-block !important;
+  }
+
+  header .container {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+
+  .welcomeblock {
+    width: auto !important;
+    margin-top: 0 !important;
+    gap: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .welcomeblock .button {
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+    border-radius: 18px !important;
+    margin: 0 !important;
+    line-height: 1.3 !important;
+  }
+
+  .welcomeblock .button span {
+    font-size: 12px !important;
+  }
+}
+
 /* ==========================================================================
    Modern Dashboard Layout & Components
    ========================================================================== */
