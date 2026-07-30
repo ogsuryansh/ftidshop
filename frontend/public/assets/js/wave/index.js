@@ -1,110 +1,120 @@
-var SEPARATION = 120,
-    AMOUNTX = 150,
-    AMOUNTY = 70;
-
-var container, stats;
-var camera, scene, renderer;
-
-var particles, particle, count = 0;
-
-var mouseX = 0,
-    mouseY = 0;
-
+var container, camera, scene, renderer;
+var particleSystem, gridHelper;
+var mouseX = 0, mouseY = 0;
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
 
 window.initWave = function() {
-    init();
-    animate();
+    initCyberBg();
 };
 
 if (document.getElementById('wave')) {
     window.initWave();
 }
 
-function init() {
+function initCyberBg() {
     var waveEl = document.getElementById('wave');
     if (!waveEl) return;
     waveEl.innerHTML = '';
+
     container = document.createElement('div');
     container.className = "wave-position";
-    waveEl.append(container);
+    waveEl.appendChild(container);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.z = 10000;
+    var heroContainer = document.getElementById('background_main') || waveEl;
+    var canvasWidth = heroContainer.clientWidth || window.innerWidth;
+    var canvasHeight = heroContainer.clientHeight || 600;
+
+    camera = new THREE.PerspectiveCamera(60, canvasWidth / canvasHeight, 1, 3000);
+    camera.position.z = 700;
+    camera.position.y = 100;
 
     scene = new THREE.Scene();
 
-    particles = new Array();
+    // 1. Cyber Perspective Horizon Grid Floor
+    if (THREE.GridHelper) {
+        gridHelper = new THREE.GridHelper(2400, 36, 0x00f2fe, 0x7f00ff);
+        gridHelper.position.y = -220;
+        scene.add(gridHelper);
+    }
 
-    var PI2 = Math.PI * 2;
-    var material = new THREE.SpriteCanvasMaterial({
-        color: 0x00f2fe,
-        program: function(context) {
-            context.beginPath();
-            context.arc(0.9, 0, 0.5, 0, PI2, true);
-            context.fill();
+    // 2. Floating Cyber Constellation Nodes
+    var particleCount = 100;
+    var geometry = new THREE.Geometry ? new THREE.Geometry() : null;
+
+    if (geometry) {
+        for (var i = 0; i < particleCount; i++) {
+            var x = (Math.random() - 0.5) * 1600;
+            var y = (Math.random() - 0.5) * 600;
+            var z = (Math.random() - 0.5) * 1200;
+            geometry.vertices.push(new THREE.Vector3(x, y, z));
         }
-    });
 
-    var i = 0;
+        var pMaterial = THREE.ParticleBasicMaterial ? 
+            new THREE.ParticleBasicMaterial({ color: 0x00f2fe, size: 3.5, transparent: true, opacity: 0.7 }) :
+            new THREE.PointsMaterial({ color: 0x00f2fe, size: 3.5, transparent: true, opacity: 0.7 });
 
-    for (var ix = 0; ix < AMOUNTX; ix++) {
-        for (var iy = 0; iy < AMOUNTY; iy++) {
-            particle = particles[i++] = new THREE.Sprite(material);
-            particle.position.x = ix * SEPARATION - ((AMOUNTX * SEPARATION) / 2);
-            particle.position.z = iy * SEPARATION - ((AMOUNTY * SEPARATION) / 2);
-            scene.add(particle);
+        particleSystem = THREE.ParticleSystem ? 
+            new THREE.ParticleSystem(geometry, pMaterial) : 
+            new THREE.Points(geometry, pMaterial);
+        scene.add(particleSystem);
+    }
+
+    // 3. Renderer Setup
+    try {
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    } catch(e) {
+        if (THREE.CanvasRenderer) {
+            renderer = new THREE.CanvasRenderer({ alpha: true });
+        } else {
+            return;
         }
     }
 
-    renderer = new THREE.CanvasRenderer();
-    renderer.setPixelRatio(window.devicePixelRatio);
-    var heroContainer = document.getElementById('background_main') || waveEl;
-    var canvasWidth = heroContainer.clientWidth || window.innerWidth;
-    var canvasHeight = heroContainer.clientHeight || 500;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(canvasWidth, canvasHeight);
     container.appendChild(renderer.domElement);
 
+    document.addEventListener('mousemove', onDocumentMouseMove, false);
     window.addEventListener('resize', onWindowResize, false);
+
+    animate();
+}
+
+function onDocumentMouseMove(event) {
+    mouseX = (event.clientX - windowHalfX) * 0.15;
+    mouseY = (event.clientY - windowHalfY) * 0.15;
 }
 
 function onWindowResize() {
     windowHalfX = window.innerWidth / 2;
     windowHalfY = window.innerHeight / 2;
 
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-
     var heroContainer = document.getElementById('background_main');
-    if (heroContainer) {
+    if (heroContainer && renderer && camera) {
         var canvasWidth = heroContainer.clientWidth;
         var canvasHeight = heroContainer.clientHeight;
+        camera.aspect = canvasWidth / canvasHeight;
+        camera.updateProjectionMatrix();
         renderer.setSize(canvasWidth, canvasHeight);
     }
 }
 
 function animate() {
     requestAnimationFrame(animate);
-    render();
-}
+    
+    if (camera && scene && renderer) {
+        camera.position.x += (mouseX - camera.position.x) * 0.02;
+        camera.position.y += (-mouseY + 100 - camera.position.y) * 0.02;
+        camera.lookAt(scene.position);
 
-function render() {
-    camera.position.set(300, 800, 122);
-
-    var i = 0;
-
-    for (var ix = 0; ix < AMOUNTX; ix++) {
-        for (var iy = 0; iy < AMOUNTY; iy++) {
-            particle = particles[i++];
-            particle.position.y = (Math.sin((ix + count) * 0.3) * 50) +
-                (Math.sin((iy + count) * 0.5) * 50);
-            particle.scale.x = particle.scale.y = (Math.sin((ix + count) * 0.3) + 1) * 4 +
-                (Math.sin((iy + count) * 0.5) + 1) * 4;
+        if (particleSystem) {
+            particleSystem.rotation.y += 0.001;
         }
+        if (gridHelper) {
+            gridHelper.rotation.y += 0.0005;
+        }
+
+        renderer.render(scene, camera);
     }
-
-    renderer.render(scene, camera);
-
-    count += 0.1;
 }
