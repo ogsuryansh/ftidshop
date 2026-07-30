@@ -86,34 +86,34 @@ export default function Home() {
 
       <section id="how-it-works">
           <div className="container pt_12 pb_12">
-              <div className="align_center text_xlarge pb_12 theme_text_gradient">How does it work ?</div>
+              <div className="align_center text_xlarge pb_12 theme_text_gradient weight_semibold">How does it work ?</div>
               <div className="flex_container flex_wrap">
                   <div className="flex_rows_4 p_4">
                       <span className="step_1 align_center ml_auto mr_auto circle_step button_outlined mb_6 block radius_full text_2xlarge"><i className='theme_text_gradient bx bxs-user-plus'></i></span>
                       <div>
-                          <div className="mb_0 text_large theme_text_gradient weight_semibold">1. Register</div>
-                          Join today and enjoy hassle-free registration—it's quick, easy, and completely free!
+                          <div className="mb_0 text_large theme_text_gradient weight_semibold">1. Sign Up</div>
+                          Create your free account in just a few clicks and get started instantly.
                       </div>
                   </div>
                   <div className="flex_rows_4 p_4">
-                      <span className="step_2 align_center ml_auto mr_auto circle_step button_outlined mb_6 block radius_full text_2xlarge"><i className='theme_text_gradient bx bxs-wallet-alt'></i></span>
+                      <span className="step_2 align_center ml_auto mr_auto circle_step button_outlined mb_6 block radius_full text_2xlarge"><i className='theme_text_gradient bx bxs-grid-alt'></i></span>
                       <div>
-                          <div className="mb_0 text_large theme_text_gradient weight_semibold">2. Deposit</div>
-                          Deposit funds into your account, ensuring your financial transactions are kept private and secure.
+                          <div className="mb_0 text_large theme_text_gradient weight_semibold">2. Choose Service</div>
+                          Browse our services and select the one that best fits your needs.
                       </div>
                   </div>
                   <div className="flex_rows_4 p_4">
-                      <span className="step_3 align_center ml_auto mr_auto circle_step button_outlined mb_6 block radius_full text_2xlarge"><i className='theme_text_gradient bx bxs-file-export'></i></span>
+                      <span className="step_3 align_center ml_auto mr_auto circle_step button_outlined mb_6 block radius_full text_2xlarge"><i className='theme_text_gradient bx bxs-credit-card'></i></span>
                       <div>
-                          <div className="mb_0 text_large theme_text_gradient weight_semibold">3. Submit</div>
-                          Place your order effortlessly and let our team of experts handle your request with care and efficiency.
+                          <div className="mb_0 text_large theme_text_gradient weight_semibold">3. Complete Payment</div>
+                          Complete your payment securely and submit your order with confidence.
                       </div>
                   </div>
                   <div className="flex_rows_4 p_4">
-                      <span className="step_4 align_center ml_auto mr_auto circle_step button_outlined mb_6 block radius_full text_2xlarge"><i className='theme_text_gradient bx bx-list-check'></i></span>
+                      <span className="step_4 align_center ml_auto mr_auto circle_step button_outlined mb_6 block radius_full text_2xlarge"><i className='theme_text_gradient bx bxs-package'></i></span>
                       <div>
-                          <div className="mb_0 text_large theme_text_gradient weight_semibold">4. Wait</div>
-                          Stay informed every step of the way! Our team will handle your request with expertise and keep you updated throughout the process.
+                          <div className="mb_0 text_large theme_text_gradient weight_semibold">4. Get Your Order</div>
+                          Our team will process your request and deliver your order as quickly as possible while keeping you updated.
                       </div>
                   </div>
               </div>
