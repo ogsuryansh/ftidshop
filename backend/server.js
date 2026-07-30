@@ -115,6 +115,9 @@ app.use(async (req, res, next) => {
     }
 });
 
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
+
 app.post('/api/register', async (req, res) => {
     const { name, email, password, captchaToken } = req.body;
     
@@ -132,7 +135,7 @@ app.post('/api/register', async (req, res) => {
         
         const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
         
-        res.json({ message: 'Registration successful!', token, user: { id: newUser._id, name: newUser.name, email: newUser.email, credits: newUser.credits, joined: newUser.createdAt } });
+        res.json({ message: 'Registration successful!', token, user: { id: newUser._id, name: newUser.name, email: newUser.email, credits: newUser.credits, twoFactorEnabled: false, joined: newUser.createdAt } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
@@ -140,7 +143,7 @@ app.post('/api/register', async (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, twoFactorCode } = req.body;
     try {
         const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ error: 'Invalid credentials' });
@@ -148,12 +151,166 @@ app.post('/api/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
         
+        if (user.twoFactorEnabled) {
+            if (!twoFactorCode) {
+                return res.status(200).json({ requires2FA: true, message: '2FA authentication code required' });
+            }
+            const verified = speakeasy.totp.verify({
+                secret: user.twoFactorSecret,
+                encoding: 'base32',
+                token: twoFactorCode,
+                window: 1
+            });
+            if (!verified) {
+                return res.status(400).json({ error: 'Invalid 2FA code' });
+            }
+        }
+
         const token = jwt.sign({ id: user._id, role: 'user' }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
         
-        res.json({ token, user: { id: user._id, name: user.name, email: user.email, credits: user.credits, joined: user.createdAt } });
+        res.json({ token, user: { id: user._id, name: user.name, email: user.email, credits: user.credits, twoFactorEnabled: user.twoFactorEnabled || false, joined: user.createdAt } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// User Authentication Middleware
+const authUser = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Access denied. No token provided.' });
+    }
+    const token = authHeader.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        req.user = decoded;
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: 'Invalid or expired token.' });
+    }
+};
+
+// Fetch current user details
+app.get('/api/user/me', authUser, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password -twoFactorSecret -tempTwoFactorSecret');
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// 2FA: Generate QR Code & Secret
+app.post('/api/2fa/generate', authUser, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const secret = speakeasy.generateSecret({
+            name: `FTID.SHOP (${user.email})`
+        });
+
+        user.tempTwoFactorSecret = secret.base32;
+        await user.save();
+
+        const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
+
+        res.json({
+            qrCode: qrCodeUrl,
+            secret: secret.base32
+        });
+    } catch (err) {
+        console.error('2FA generate error:', err);
+        res.status(500).json({ error: 'Server error generating 2FA' });
+    }
+});
+
+// 2FA: Verify & Enable
+app.post('/api/2fa/enable', authUser, async (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: '2FA token required' });
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user || !user.tempTwoFactorSecret) {
+            return res.status(400).json({ error: 'No active 2FA setup request found' });
+        }
+
+        const verified = speakeasy.totp.verify({
+            secret: user.tempTwoFactorSecret,
+            encoding: 'base32',
+            token: token,
+            window: 1
+        });
+
+        if (!verified) {
+            return res.status(400).json({ error: 'Invalid 2FA verification code' });
+        }
+
+        user.twoFactorSecret = user.tempTwoFactorSecret;
+        user.tempTwoFactorSecret = null;
+        user.twoFactorEnabled = true;
+        await user.save();
+
+        res.json({
+            message: '2FA Security enabled successfully!',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                credits: user.credits,
+                twoFactorEnabled: user.twoFactorEnabled,
+                joined: user.createdAt
+            }
+        });
+    } catch (err) {
+        console.error('2FA enable error:', err);
+        res.status(500).json({ error: 'Server error enabling 2FA' });
+    }
+});
+
+// 2FA: Disable
+app.post('/api/2fa/disable', authUser, async (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: '2FA token required to disable' });
+
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+            return res.status(400).json({ error: '2FA is not enabled for this account' });
+        }
+
+        const verified = speakeasy.totp.verify({
+            secret: user.twoFactorSecret,
+            encoding: 'base32',
+            token: token,
+            window: 1
+        });
+
+        if (!verified) {
+            return res.status(400).json({ error: 'Invalid 2FA verification code' });
+        }
+
+        user.twoFactorSecret = null;
+        user.twoFactorEnabled = false;
+        await user.save();
+
+        res.json({
+            message: '2FA Security disabled',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                credits: user.credits,
+                twoFactorEnabled: user.twoFactorEnabled,
+                joined: user.createdAt
+            }
+        });
+    } catch (err) {
+        console.error('2FA disable error:', err);
+        res.status(500).json({ error: 'Server error disabling 2FA' });
     }
 });
 
