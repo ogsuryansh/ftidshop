@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import Hero3DScene from '../components/Hero3DScene';
 
 export default function Home() {
   useEffect(() => {
@@ -18,13 +19,13 @@ export default function Home() {
                       <div className="mb_8 color_neutral">Welcome to FTID.SHOP, the #1 global service, offering a large variety of options. The fastest delivery possible, with utmost care and precision, at all times.</div>
                   </div>
                   <div data-width="50%" className="hero_container align_center">
-                      <img className="hero_image" src="/assets/images/hero.png" alt="Hero" />
+                      <Hero3DScene />
                   </div>
               </div>
           </section>
       </div>
 
-      <section>
+      <section id="couriers">
           <div className="bg_secondary">
               <div className="container pt_6 pb_6">
                   <div className="couriers_slider align_center"></div>
@@ -32,8 +33,8 @@ export default function Home() {
           </div>
       </section>
 
-      <section>
-          <div className="container pt_12 pt_12">
+      <section id="features">
+          <div className="container pt_12 pb_12">
               <div className="flex_container flex_wrap -m_4">
                   <div className="flex_rows_3 p_4 radius_medium bg_secondary m_4 align_center">
                       <i className='bx bx-check-shield radius_large vmiddle text_4xlarge pb_2 theme_text_gradient'></i>
@@ -48,14 +49,14 @@ export default function Home() {
                   <div className="flex_rows_3 p_4 radius_medium bg_secondary m_4 align_center">
                       <i className='bx bxs-hand radius_large vmiddle text_4xlarge pb_2 theme_text_gradient'></i>
                       <div className="mb_3 text_large weight_semibold">Privacy focused</div>
-                      <div>Protecting your data and privacy is our top priority, ensuring that your information remains secure and confidential at all times</div>
+                      <div>Protecting your data and privacy is our top priority, ensuring that your information remains secure and confidential at all times.</div>
                   </div>
               </div>
           </div>
       </section>
 
-      <section>
-          <div className="container pt_12 pt_12">
+      <section id="how-it-works">
+          <div className="container pt_12 pb_12">
               <div className="align_center text_xlarge pb_12 theme_text_gradient">How does it work ?</div>
               <div className="flex_container flex_wrap">
                   <div className="flex_rows_4 p_4">
@@ -69,7 +70,7 @@ export default function Home() {
                       <span className="step_2 align_center ml_auto mr_auto circle_step button_outlined mb_6 block radius_full text_2xlarge"><i className='theme_text_gradient bx bxs-wallet-alt'></i></span>
                       <div>
                           <div className="mb_0 text_large theme_text_gradient weight_semibold">2. Deposit</div>
-                          Deposit funds into your account, ensuring your financial transactions are kept private and secure
+                          Deposit funds into your account, ensuring your financial transactions are kept private and secure.
                       </div>
                   </div>
                   <div className="flex_rows_4 p_4">
@@ -92,3 +93,5 @@ export default function Home() {
     </>
   );
 }
+
+

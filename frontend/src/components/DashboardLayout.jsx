@@ -1,83 +1,132 @@
-import React from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 
 export default function DashboardLayout() {
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
   const username = user ? user.name : 'Unknown';
   const credits = user ? user.credits : 0;
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
 
   return (
-    <div className="dashboard-container" style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#141617' }}>
-      {/* Sidebar */}
-      <div className="dashboard-sidebar" style={{ width: '250px', backgroundColor: '#1c1e1f', padding: '30px 20px', borderRight: '1px solid #2a2a2a', display: 'flex', flexDirection: 'column', gap: '30px', boxSizing: 'border-box' }}>
-        
-        <div>
-          <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '15px', color: '#fff' }}>My account</div>
-          <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#00f2fe', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bxs-grid-alt'></i> Profile settings
-          </Link>
-        </div>
+    <div className="dashboard_app_wrapper">
+      {/* Topbar */}
+      <header className="dashboard_topbar">
+        <div className="topbar_inner">
+          <div className="topbar_left">
+            <button 
+              className="sidebar_toggle_btn" 
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              aria-label="Toggle Navigation"
+            >
+              <i className={`bx ${mobileSidebarOpen ? 'bx-x' : 'bx-menu-alt-left'}`}></i>
+            </button>
+            
+            <Link to="/" className="brand_logo" style={{ textDecoration: 'none' }}>
+              <span className="logo_brand">FTID</span><span className="logo_accent">.SHOP</span>
+            </Link>
+          </div>
 
-        <div>
-          <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '15px', color: '#fff' }}>FTID</div>
-          <Link to="/dashboard/ftid/submit" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bx-plus-circle'></i> Submit order
-          </Link>
-          <Link to="/dashboard/ftid/orders" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bx-cart'></i> My orders
-          </Link>
-        </div>
-
-        <div>
-          <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '15px', color: '#fff' }}>Receipts</div>
-          <Link to="/dashboard/receipts/submit" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bx-receipt'></i> Submit order
-          </Link>
-          <Link to="/dashboard/receipts/orders" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bx-history'></i> My orders
-          </Link>
-        </div>
-
-        <div>
-          <div style={{ fontWeight: 'bold', marginBottom: '15px', fontSize: '15px', color: '#fff' }}>Help</div>
-          <a href="https://t.me/+CaAi1_Ps4mE3NjZh" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bx-chat'></i> Community chat
-          </a>
-          <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bx-news'></i> FTID.SHOP news
-          </a>
-          <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#999', fontSize: '14px', textDecoration: 'none', padding: '5px 0' }}>
-            <i className='bx bx-support'></i> Support (@rts_www)
-          </a>
-        </div>
-
-      </div>
-
-      {/* Main Content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', overflowX: 'hidden' }}>
-        {/* Topbar */}
-        <div className="dashboard-topbar" style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Link to="/" className="logo text_4xlarge weight_bold transform_uppercase" style={{ textDecoration: 'none' }}>
-              <span className="inline_block vmiddle color_secondary">FTID</span><span className="inline_block vmiddle stroked_text">.SHOP</span>
-          </Link>
-          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-            <div style={{ color: '#fff', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}><i className='bx bx-wallet'></i> ${credits}</div>
-            <div style={{ color: '#fff', fontSize: '14px' }}>{username}</div>
+          <div className="topbar_right">
+            <div className="wallet_badge">
+              <i className='bx bx-wallet'></i> <span>${credits}</span>
+            </div>
+            <div className="user_profile_pill">
+              <div className="user_avatar">{username.charAt(0).toUpperCase()}</div>
+              <span className="user_name">{username}</span>
+            </div>
+            <button onClick={handleSignOut} className="btn_signout" title="Sign Out">
+              <i className='bx bx-log-out'></i>
+            </button>
           </div>
         </div>
+      </header>
 
-        <div style={{ padding: '20px 40px', flex: 1, boxSizing: 'border-box' }} className="bg_primary dashboard-content">
-            {/* Banner */}
-            <div style={{ backgroundColor: '#1c1e1f', padding: '8px 0', borderRadius: '8px', marginBottom: '30px', overflow: 'hidden', border: '1px solid #2a2a2a' }}>
-                <marquee scrollamount="5" style={{ fontSize: '15px', fontWeight: '500', letterSpacing: '0.5px', color: '#ff4d4d' }}>
-                    ⚠️ <strong style={{ color: '#ff4d4d' }}>NOTICE:</strong> Our new Telegram account for support is <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer" style={{ color: '#ff4d4d', fontWeight: 'bold' }}>@rts_www</a> &nbsp;|&nbsp; Join our new update channel by clicking <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer" style={{ color: '#ff4d4d', textDecoration: 'underline' }}>here</a>
-                </marquee>
-            </div>
+      <div className="dashboard_body">
+        {/* Sidebar */}
+        <aside className={`dashboard_sidebar ${mobileSidebarOpen ? 'mobile_open' : ''}`}>
+          <div className="sidebar_group">
+            <div className="sidebar_group_title">MY ACCOUNT</div>
+            <NavLink 
+              to="/dashboard" 
+              end
+              className={({ isActive }) => `sidebar_link ${isActive ? 'active' : ''}`}
+              onClick={() => setMobileSidebarOpen(false)}
+            >
+              <i className='bx bxs-user-detail'></i> <span>Profile Settings</span>
+            </NavLink>
+          </div>
 
-            <Outlet />
-        </div>
+          <div className="sidebar_group">
+            <div className="sidebar_group_title">FTID SERVICES</div>
+            <NavLink 
+              to="/dashboard/ftid/submit" 
+              className={({ isActive }) => `sidebar_link ${isActive ? 'active' : ''}`}
+              onClick={() => setMobileSidebarOpen(false)}
+            >
+              <i className='bx bx-plus-circle'></i> <span>Submit Order</span>
+            </NavLink>
+            <NavLink 
+              to="/dashboard/ftid/orders" 
+              className={({ isActive }) => `sidebar_link ${isActive ? 'active' : ''}`}
+              onClick={() => setMobileSidebarOpen(false)}
+            >
+              <i className='bx bx-package'></i> <span>My Orders</span>
+            </NavLink>
+          </div>
+
+          <div className="sidebar_group">
+            <div className="sidebar_group_title">RECEIPT SERVICES</div>
+            <NavLink 
+              to="/dashboard/receipts/submit" 
+              className={({ isActive }) => `sidebar_link ${isActive ? 'active' : ''}`}
+              onClick={() => setMobileSidebarOpen(false)}
+            >
+              <i className='bx bx-receipt'></i> <span>Submit Receipt</span>
+            </NavLink>
+            <NavLink 
+              to="/dashboard/receipts/orders" 
+              className={({ isActive }) => `sidebar_link ${isActive ? 'active' : ''}`}
+              onClick={() => setMobileSidebarOpen(false)}
+            >
+              <i className='bx bx-history'></i> <span>My Receipts</span>
+            </NavLink>
+          </div>
+
+          <div className="sidebar_group">
+            <div className="sidebar_group_title">HELP & SUPPORT</div>
+            <a href="https://t.me/+CaAi1_Ps4mE3NjZh" target="_blank" rel="noopener noreferrer" className="sidebar_link">
+              <i className='bx bx-chat'></i> <span>Community Chat</span> <i className='bx bx-link-external link_icon'></i>
+            </a>
+            <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer" className="sidebar_link">
+              <i className='bx bx-news'></i> <span>News Channel</span> <i className='bx bx-link-external link_icon'></i>
+            </a>
+            <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer" className="sidebar_link">
+              <i className='bx bx-support'></i> <span>Support (@rts_www)</span> <i className='bx bx-link-external link_icon'></i>
+            </a>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="dashboard_main_content">
+          {/* Top Announcement Alert */}
+          <div className="dashboard_announcement_banner">
+            <i className='bx bxs-bell-ring banner_icon'></i>
+            <span>
+              <strong>NOTICE:</strong> Support is available at <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer">@rts_www</a> &nbsp;|&nbsp; Join official channel <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer">Here <i className='bx bx-right-arrow-alt'></i></a>
+            </span>
+          </div>
+
+          <Outlet />
+        </main>
       </div>
     </div>
   );
 }
+

@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
 export default function Layout() {
   const token = localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
   const isLoggedIn = !!(token || userStr);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = () => {
     localStorage.removeItem('token');
@@ -15,16 +16,20 @@ export default function Layout() {
   return (
     <>
       <div className="bg_tertiary">
-          <div className="align_center pt_2 pb_2">
+          <div className="align_center pt_2 pb_2 px_4" style={{ fontSize: '13px', lineHeight: '1.5' }}>
               Our new Telegram account for support is <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer">@rts_www</a> / Join our new update channel by clicking <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer">here</a>
           </div>
       </div>
 
-      <header className="pt_8 pb_8 pl_4 pr_4" style={{ position: 'relative', zIndex: 100 }}>
-          <div className="container flex_container flex_persistent items_center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+      <header className="site_header pt_6 pb_6 pl_4 pr_4">
+          <div className="container header_flex_container">
+              
+              {/* Brand Logo */}
               <Link to="/" className="logo text_4xlarge weight_bold transform_uppercase" style={{ textDecoration: 'none' }}>
                   <span className="inline_block vmiddle color_secondary">FTID</span><span className="inline_block vmiddle stroked_text">.SHOP</span>
               </Link>
+
+              {/* Header Actions */}
               <div className="welcomeblock" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   {isLoggedIn ? (
                     <>
@@ -60,3 +65,6 @@ export default function Layout() {
     </>
   );
 }
+
+
+

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function Dashboard() {
   const userStr = localStorage.getItem('user');
@@ -8,49 +8,104 @@ export default function Dashboard() {
   const credits = user ? user.credits : 0;
   const joinedDate = user && user.joined ? new Date(user.joined).toLocaleString() : 'N/A';
 
+  const [activeTab, setActiveTab] = useState('profile');
+
   return (
-    <div className="bg_secondary" style={{ borderRadius: '12px', padding: '40px' }}>
-        <h2 style={{ fontSize: '22px', marginBottom: '30px', fontWeight: '500', color: '#fff' }}>Profile overview</h2>
-        
-        <div style={{ display: 'flex', gap: '30px', marginBottom: '40px' }}>
-            <div style={{ color: '#00f2fe', cursor: 'pointer', fontSize: '14px' }}>Profile settings</div>
-            <div style={{ color: '#999', cursor: 'pointer', fontSize: '14px' }}>Change password</div>
-            <div style={{ color: '#999', cursor: 'pointer', fontSize: '14px' }}>Change email</div>
-            <div style={{ color: '#999', cursor: 'pointer', fontSize: '14px' }}>2FA</div>
-            <div style={{ color: '#999', cursor: 'pointer', fontSize: '14px' }}>Deposits</div>
+    <div className="dashboard_card_panel">
+      {/* Header Banner */}
+      <div className="profile_header_card">
+        <div className="profile_avatar_lg">
+          {username.charAt(0).toUpperCase()}
         </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', maxWidth: '600px' }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '200px', color: '#999', fontSize: '14px' }}>Username:</div>
-                <div style={{ color: '#fff', fontSize: '14px' }}>{username}</div>
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '200px', color: '#999', fontSize: '14px' }}>Joined:</div>
-                <div style={{ color: '#fff', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>{joinedDate} <i className='bx bx-calendar'></i></div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '200px', color: '#999', fontSize: '14px' }}>Email:</div>
-                <div style={{ color: '#fff', fontSize: '14px' }}>{email}</div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '200px', color: '#999', fontSize: '14px' }}>2FA:</div>
-                <div style={{ backgroundColor: '#a94442', color: '#fff', padding: '6px 15px', borderRadius: '6px', fontSize: '13px' }}>Disabled</div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '200px', color: '#999', fontSize: '14px' }}>Credits:</div>
-                <div style={{ color: '#fff', fontSize: '14px' }}>${credits}</div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-                <div style={{ width: '200px', color: '#999', fontSize: '14px' }}>Delete account:</div>
-                <div style={{ backgroundColor: '#a94442', color: '#fff', padding: '6px 15px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Delete account</div>
-            </div>
+        <div className="profile_info_header">
+          <div className="profile_user_title">
+            <h3>{username}</h3>
+            <span className="user_role_badge"><i className='bx bxs-badge-check'></i> Verified Member</span>
+          </div>
+          <p className="profile_email_sub">{email}</p>
         </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="dashboard_tab_bar">
+        <button 
+          className={`tab_btn ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setActiveTab('profile')}
+        >
+          <i className='bx bx-user'></i> Profile Settings
+        </button>
+        <button 
+          className={`tab_btn ${activeTab === 'security' ? 'active' : ''}`}
+          onClick={() => setActiveTab('security')}
+        >
+          <i className='bx bx-shield-quarter'></i> Security & 2FA
+        </button>
+        <button 
+          className={`tab_btn ${activeTab === 'deposits' ? 'active' : ''}`}
+          onClick={() => setActiveTab('deposits')}
+        >
+          <i className='bx bx-wallet'></i> Wallet & Credits
+        </button>
+      </div>
+
+      {/* Tab Content Panels */}
+      {activeTab === 'profile' && (
+        <div className="tab_panel_content">
+          <div className="details_grid">
+            <div className="detail_item">
+              <div className="detail_label"><i className='bx bx-user-circle'></i> Username</div>
+              <div className="detail_value">{username}</div>
+            </div>
+
+            <div className="detail_item">
+              <div className="detail_label"><i className='bx bx-envelope'></i> Email Address</div>
+              <div className="detail_value">{email}</div>
+            </div>
+
+            <div className="detail_item">
+              <div className="detail_label"><i className='bx bx-calendar-event'></i> Account Created</div>
+              <div className="detail_value">{joinedDate}</div>
+            </div>
+
+            <div className="detail_item">
+              <div className="detail_label"><i className='bx bx-wallet-alt'></i> Available Balance</div>
+              <div className="detail_value text_gradient_val">${credits} USD</div>
+            </div>
+
+            <div className="detail_item">
+              <div className="detail_label"><i className='bx bx-lock-alt'></i> Two-Factor Auth</div>
+              <div className="detail_value">
+                <span className="status_pill pill_danger"><i className='bx bx-x-circle'></i> Disabled</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'security' && (
+        <div className="tab_panel_content">
+          <div className="security_box">
+            <h4>Two-Factor Authentication (2FA)</h4>
+            <p>Protect your FTID.SHOP account with an extra layer of security using Google Authenticator or Authy.</p>
+            <button className="btn_action_primary">
+              <i className='bx bx-shield-plus'></i> Enable 2FA Security
+            </button>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'deposits' && (
+        <div className="tab_panel_content">
+          <div className="credits_box">
+            <div className="balance_card">
+              <span className="balance_title">Current Balance</span>
+              <div className="balance_amount">${credits}</div>
+            </div>
+            <p>Credits can be used to place instant orders for FTID and Receipts.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
