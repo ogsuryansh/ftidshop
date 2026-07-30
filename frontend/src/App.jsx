@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import DashboardLayout from './components/DashboardLayout';
+import BoxFallingAnimation from './components/BoxFallingAnimation';
 import Home from './pages/Home';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
@@ -20,23 +21,18 @@ function App() {
       const loader = document.querySelector('.landing_loader');
       if (loader) loader.remove();
       document.body.style.overflow = 'initial';
-    }, 2500);
+    }, 3200);
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <>
-      <div className="landing_loader">
-          <div className="scene">
-              <div className="cube cube_count_1">
-                  <div className="cube__face cube__face--front"></div>
-                  <div className="cube__face cube__face--back"></div>
-                  <div className="cube__face cube__face--right"></div>
-                  <div className="cube__face cube__face--left"></div>
-                  <div className="cube__face cube__face--top"></div>
-                  <div className="cube__face cube__face--bottom"></div>
-              </div>
-          </div>
+      <div className="landing_loader" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#090b0e' }}>
+        <BoxFallingAnimation />
+        <div style={{ marginTop: '-30px', textAlign: 'center', zIndex: 10 }}>
+          <img src="/assets/images/brand_logo.png" alt="FTID.SHOP" style={{ height: '36px', width: 'auto', display: 'block', margin: '0 auto 8px auto', mixBlendMode: 'screen' }} />
+          <div style={{ color: '#00f2fe', fontSize: '12px', letterSpacing: '1.5px', fontWeight: '600' }}>LOADING SERVICES...</div>
+        </div>
       </div>
       
       <BrowserRouter>
