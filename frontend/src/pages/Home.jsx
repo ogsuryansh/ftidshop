@@ -15,8 +15,8 @@ export default function Home() {
           <section className="hero position_relative px_5 pt_12 pb_12 pl_4 pr_4" style={{ position: 'relative', zIndex: 2 }}>
               <div className="container flex_container items_center">
                   <div data-width="50%">
-                      <div className="text_2xlarge weight_semibold mb_4 color_secondary">The #1 Global service <span className="theme_text_gradient">FTID.SHOP</span></div>
-                      <div className="mb_8 color_neutral">Welcome to FTID.SHOP, the #1 global service, offering a large variety of options. The fastest delivery possible, with utmost care and precision, at all times.</div>
+                      <div className="text_2xlarge weight_semibold mb_4 color_secondary">Welcome to the #1 <span className="theme_text_gradient">Boxing Service Worldwide</span></div>
+                      <div className="mb_8 color_neutral">FTID.SHOP provides trusted boxing services to customers across the globe. We focus on fast processing, secure transactions, dependable support, and a seamless experience from start to finish. Our goal is to deliver professional service with consistency, quality, and reliability every time.</div>
                   </div>
                   <div data-width="50%" className="hero_container align_center">
                       <Hero3DScene />
