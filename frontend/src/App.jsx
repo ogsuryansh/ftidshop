@@ -29,9 +29,9 @@ function App() {
     <>
       <div className="landing_loader" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#090b0e' }}>
         <BoxFallingAnimation />
-        <div style={{ marginTop: '-30px', textAlign: 'center', zIndex: 10 }}>
-          <img src="/assets/images/brand_logo.png" alt="FTID.SHOP" style={{ height: '36px', width: 'auto', display: 'block', margin: '0 auto 8px auto', mixBlendMode: 'screen' }} />
-          <div style={{ color: '#00f2fe', fontSize: '12px', letterSpacing: '1.5px', fontWeight: '600' }}>LOADING SERVICES...</div>
+        <div style={{ marginTop: '-15px', textAlign: 'center', zIndex: 10 }}>
+          <img src="/assets/images/brand_logo.png" alt="FTID.SHOP" style={{ height: '32px', width: 'auto', display: 'block', margin: '0 auto 6px auto', mixBlendMode: 'screen' }} />
+          <div style={{ color: '#00f2fe', fontSize: '11px', letterSpacing: '1.5px', fontWeight: '600' }}>LOADING SERVICES...</div>
         </div>
       </div>
       
