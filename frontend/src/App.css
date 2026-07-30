@@ -189,6 +189,10 @@
   }
 }
 
+.brand_logo_img {
+  mix-blend-mode: screen;
+}
+
 @media (max-width: 768px) {
   body {
     font-size: 0.9rem !important;
@@ -197,6 +201,7 @@
 
   .brand_logo_img {
     height: 32px !important;
+    mix-blend-mode: screen;
   }
 
   .bg_tertiary .align_center {
