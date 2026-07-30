@@ -67,7 +67,6 @@ export default function Layout() {
       </footer>
       <div className="sticky_buttons">
           <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer"><img src="/assets/images/telegram_icon.jpg" alt="Telegram" /></a>
-          <a href="https://signal.group/#CjQKIJA5mtLKFm1j9utMG3mKT9CKFykstLW4IxbG76jBKuH_EhCNjf3qLEbisZ8Fr71s8uVd" target="_blank" rel="noopener noreferrer"><img src="/assets/images/signal_icon.svg" alt="Signal" /></a>
       </div>
     </>
   );
