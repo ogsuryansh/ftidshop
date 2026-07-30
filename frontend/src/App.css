@@ -190,8 +190,20 @@
 }
 
 @media (max-width: 768px) {
+  body {
+    font-size: 0.9rem !important;
+    line-height: 1.45rem !important;
+  }
+
+  .bg_tertiary .align_center {
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+
   header .logo {
-    font-size: 1.4rem !important;
+    font-size: 1.3rem !important;
     display: inline-flex !important;
     align-items: center !important;
   }
@@ -226,7 +238,45 @@
   .welcomeblock .button span {
     font-size: 12px !important;
   }
+
+  .text_2xlarge {
+    font-size: 1.25rem !important;
+    line-height: 1.65rem !important;
+  }
+
+  .text_xlarge {
+    font-size: 1.15rem !important;
+    line-height: 1.5rem !important;
+  }
+
+  .text_large {
+    font-size: 0.95rem !important;
+    line-height: 1.4rem !important;
+  }
+
+  .color_neutral {
+    font-size: 0.85rem !important;
+    line-height: 1.35rem !important;
+  }
+
+  .hero_3d_container {
+    height: 240px !important;
+  }
+
+  .pt_12, .pb_12 {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+
+  .mb_8 {
+    margin-bottom: 1rem !important;
+  }
+
+  .mb_4 {
+    margin-bottom: 0.5rem !important;
+  }
 }
+
 
 /* ==========================================================================
    Modern Dashboard Layout & Components
