@@ -28,8 +28,13 @@ export default function DashboardLayout() {
               <i className={`bx ${mobileSidebarOpen ? 'bx-x' : 'bx-menu-alt-left'}`}></i>
             </button>
             
-            <Link to="/" className="brand_logo" style={{ textDecoration: 'none' }}>
-              <span className="logo_brand">FTID</span><span className="logo_accent">.SHOP</span>
+            <Link to="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+              <img 
+                src="/assets/images/brand_logo.png" 
+                alt="FTID.SHOP" 
+                className="brand_logo_img"
+                style={{ height: '38px', width: 'auto', display: 'block', objectFit: 'contain' }} 
+              />
             </Link>
           </div>
 

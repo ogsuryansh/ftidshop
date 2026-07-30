@@ -195,6 +195,10 @@
     line-height: 1.45rem !important;
   }
 
+  .brand_logo_img {
+    height: 32px !important;
+  }
+
   .bg_tertiary .align_center {
     font-size: 11px !important;
     line-height: 1.35 !important;

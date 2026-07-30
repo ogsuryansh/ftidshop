@@ -25,8 +25,13 @@ export default function Layout() {
           <div className="container header_flex_container">
               
               {/* Brand Logo */}
-              <Link to="/" className="logo text_4xlarge weight_bold transform_uppercase" style={{ textDecoration: 'none' }}>
-                  <span className="inline_block vmiddle color_secondary">FTID</span><span className="inline_block vmiddle stroked_text">.SHOP</span>
+              <Link to="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+                  <img 
+                    src="/assets/images/brand_logo.png" 
+                    alt="FTID.SHOP - FAST. RELIABLE. WORLDWIDE." 
+                    className="brand_logo_img"
+                    style={{ height: '46px', width: 'auto', display: 'block', objectFit: 'contain' }} 
+                  />
               </Link>
 
               {/* Header Actions */}
@@ -50,8 +55,10 @@ export default function Layout() {
 
       <footer className="pt_12">
           <div className="container pt_6 pb_6">
-              <div className="align_center">
-                  <span className="text_large logo theme_text_gradient weight_semibold">FTID.SHOP</span>
+              <div className="align_center" style={{ marginBottom: '8px' }}>
+                  <Link to="/" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+                    <img src="/assets/images/brand_logo.png" alt="FTID.SHOP" style={{ height: '36px', width: 'auto', display: 'block', margin: '0 auto' }} />
+                  </Link>
               </div>
               <div className="text_small align_center">
                   FTID.SHOP &copy; All rights reserved.
