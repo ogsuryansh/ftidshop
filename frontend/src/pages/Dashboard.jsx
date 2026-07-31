@@ -13,17 +13,7 @@ export default function Dashboard() {
   const joinedDate = user && user.joined ? new Date(user.joined).toLocaleString() : 'N/A';
   const is2FAEnabled = !!(user && user.twoFactorEnabled);
 
-  const [activeTab, setActiveTab] = useState(window.location.hash === '#deposits' ? 'deposits' : 'profile');
-
-  useEffect(() => {
-    const handleOpenDeposits = () => setActiveTab('deposits');
-    window.addEventListener('open-deposits', handleOpenDeposits);
-    return () => window.removeEventListener('open-deposits', handleOpenDeposits);
-  }, []);
-  
-  // Deposit States
-  const [settings, setSettings] = useState({ minDeposit: 20, depositBonusThreshold: 100, depositBonusPercentage: 20 });
-  const [depositAmount, setDepositAmount] = useState('');
+  const [activeTab, setActiveTab] = useState('profile');
   const [createdOrder, setCreatedOrder] = useState(null);
   const [depositLoading, setDepositLoading] = useState(false);
 
@@ -49,68 +39,12 @@ export default function Dashboard() {
           setUser(prev => {
             const updated = {
               ...prev,
-              id: data._id,
-              name: data.name,
-              email: data.email,
-              credits: data.credits,
-              twoFactorEnabled: data.twoFactorEnabled,
-              joined: data.createdAt
-            };
-            localStorage.setItem('user', JSON.stringify(updated));
-            return updated;
-          });
+          setUser(data);
+          localStorage.setItem('user', JSON.stringify(data));
         }
       })
-      .catch(err => console.error('Failed to sync profile:', err));
-      
-    // Fetch global settings
-    fetch(`${API_BASE_URL}/api/settings`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.minDeposit) {
-          setSettings(data);
-          setDepositAmount(data.minDeposit.toString());
-        }
-      })
-      .catch(err => console.error('Failed to fetch settings:', err));
+      .catch(err => console.error('Error fetching latest user info:', err));
   }, [token]);
-
-  const handleDeposit = async (e) => {
-    e.preventDefault();
-    if (!user) return alert("Please log in.");
-    
-    const amount = Number(depositAmount);
-    if (isNaN(amount) || amount < settings.minDeposit) {
-      return alert(`Minimum deposit is $${settings.minDeposit}`);
-    }
-    
-    setDepositLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          type: 'deposit',
-          name: 'Wallet Deposit',
-          price: amount,
-          status: 'Pending Payment',
-          paymentStatus: 'Pending Payment'
-        })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setCreatedOrder(data);
-        setDepositAmount(settings.minDeposit.toString());
-      } else {
-        alert(data.error || 'Failed to initialize deposit');
-      }
-    } catch (err) {
-      alert('Network error initializing deposit');
-    } finally {
-      setDepositLoading(false);
-    }
-  };
 
   // Step 1: Start 2FA Setup
   const handleStart2FASetup = async () => {
@@ -245,12 +179,6 @@ export default function Dashboard() {
         >
           <i className='bx bx-shield-quarter'></i> Security & 2FA
         </button>
-        <button 
-          className={`tab_btn ${activeTab === 'deposits' ? 'active' : ''}`}
-          onClick={() => setActiveTab('deposits')}
-        >
-          <i className='bx bx-wallet'></i> Wallet & Credits
-        </button>
       </div>
 
       {/* Tab Content Panels */}
@@ -326,67 +254,6 @@ export default function Dashboard() {
                   <i className='bx bx-shield-plus'></i> {loading ? 'Generating 2FA Secret...' : 'Enable 2FA Security'}
                 </button>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'deposits' && (
-        <div className="tab_panel_content">
-          <div className="credits_box">
-            <div className="balance_card" style={{ marginBottom: '20px' }}>
-              <span className="balance_title">Current Balance</span>
-              <div className="balance_amount">${credits} USD</div>
-            </div>
-            <p style={{ color: '#aaa', fontSize: '14px', marginBottom: '30px' }}>
-              Credits can be used to place instant orders for FTID and Receipts without waiting for crypto confirmations.
-            </p>
-            
-            <div style={{ backgroundColor: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(0, 242, 254, 0.2)' }}>
-              <h4 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#fff' }}>
-                <i className='bx bx-plus-circle' style={{ color: '#00f2fe', marginRight: '8px' }}></i> Add Funds
-              </h4>
-              
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 300px' }}>
-                  <form onSubmit={handleDeposit}>
-                    <label style={{ display: 'block', fontSize: '13px', color: '#ccc', marginBottom: '8px' }}>Deposit Amount (USD)</label>
-                    <div style={{ position: 'relative', marginBottom: '15px' }}>
-                      <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#888', fontWeight: 'bold' }}>$</span>
-                      <input 
-                        type="number" 
-                        min={settings.minDeposit} 
-                        step="any" 
-                        required 
-                        value={depositAmount} 
-                        onChange={(e) => setDepositAmount(e.target.value)}
-                        style={{ width: '100%', padding: '12px 12px 12px 35px', backgroundColor: '#12151b', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '16px', boxSizing: 'border-box' }}
-                      />
-                    </div>
-                    
-                    <button 
-                      type="submit" 
-                      disabled={depositLoading}
-                      style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #00f2fe, #7f00ff)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: depositLoading ? 'not-allowed' : 'pointer', opacity: depositLoading ? 0.7 : 1 }}
-                    >
-                      {depositLoading ? 'Initializing...' : 'Proceed to Payment'}
-                    </button>
-                  </form>
-                </div>
-                
-                <div style={{ flex: '1 1 250px' }}>
-                  <div style={{ backgroundColor: 'rgba(0,0,0,0.4)', padding: '15px', borderRadius: '8px', borderLeft: '3px solid #7f00ff' }}>
-                    <div style={{ fontSize: '13px', color: '#ccc', marginBottom: '8px' }}>
-                      <strong>Minimum Deposit:</strong> ${settings.minDeposit}
-                    </div>
-                    {settings.depositBonusPercentage > 0 && (
-                      <div style={{ fontSize: '13px', color: '#4ade80', fontWeight: '600' }}>
-                        🎁 Bonus Offer: Deposit ${settings.depositBonusThreshold} or more and get a {settings.depositBonusPercentage}% bonus instantly!
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>

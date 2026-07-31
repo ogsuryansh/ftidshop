@@ -1,12 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
+import DepositModal from './DepositModal';
 
 export default function DashboardLayout() {
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const [user, setUser] = useState(() => {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  });
   const username = user ? user.name : 'Unknown';
   const credits = user ? user.credits : 0;
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+
+  useEffect(() => {
+    const handleUserUpdated = () => {
+      const userStr = localStorage.getItem('user');
+      setUser(userStr ? JSON.parse(userStr) : null);
+    };
+    window.addEventListener('user-updated', handleUserUpdated);
+    return () => window.removeEventListener('user-updated', handleUserUpdated);
+  }, []);
 
   const handleSignOut = () => {
     localStorage.removeItem('token');
@@ -43,9 +56,8 @@ export default function DashboardLayout() {
               <div className="wallet_badge">
                 <i className='bx bx-wallet'></i> <span>${credits}</span>
               </div>
-              <Link 
-                to="/dashboard#deposits" 
-                onClick={() => setTimeout(() => window.dispatchEvent(new Event('open-deposits')), 50)}
+              <button
+                onClick={() => setShowDepositModal(true)}
                 title="Deposit Funds"
                 style={{ 
                   background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', 
@@ -59,11 +71,10 @@ export default function DashboardLayout() {
                   justifyContent: 'center', 
                   cursor: 'pointer', 
                   fontSize: '20px',
-                  textDecoration: 'none',
                   boxShadow: '0 2px 8px rgba(0,242,254,0.4)'
                 }}>
                 <i className='bx bx-plus'></i>
-              </Link>
+              </button>
             </div>
             <div className="user_profile_pill">
               <div className="user_avatar">{username.charAt(0).toUpperCase()}</div>
@@ -154,6 +165,8 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+
+      {showDepositModal && <DepositModal onClose={() => setShowDepositModal(false)} />}
     </div>
   );
 }
