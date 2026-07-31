@@ -9,6 +9,11 @@ export default function ReceiptsSubmitOrder() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingTransition, setLoadingTransition] = useState(false);
   const [createdOrder, setCreatedOrder] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('Crypto');
+  const [orderSuccessMsg, setOrderSuccessMsg] = useState('');
+
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -33,8 +38,6 @@ export default function ReceiptsSubmitOrder() {
       alert("Please select a category.");
       return;
     }
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : null;
     if (!user) {
       alert("Please log in to submit an order.");
       return;
@@ -63,8 +66,9 @@ export default function ReceiptsSubmitOrder() {
           note,
           fileData,
           price,
-          status: 'Pending Payment',
-          paymentStatus: 'Pending Payment'
+          status: paymentMethod === 'Wallet Balance' ? 'Pending' : 'Pending Payment',
+          paymentStatus: paymentMethod === 'Wallet Balance' ? 'Paid' : 'Pending Payment',
+          paymentMethod
         })
       });
       const data = await res.json();
@@ -73,7 +77,16 @@ export default function ReceiptsSubmitOrder() {
         setTimeout(() => {
           setSubmitting(false);
           setLoadingTransition(false);
-          setCreatedOrder(data);
+          
+          if (paymentMethod === 'Wallet Balance') {
+             const updatedUser = { ...user, credits: user.credits - price };
+             localStorage.setItem('user', JSON.stringify(updatedUser));
+             setOrderSuccessMsg('Order paid successfully using Wallet Balance!');
+             setTimeout(() => setOrderSuccessMsg(''), 3000);
+          } else {
+             setCreatedOrder(data);
+          }
+          
           setCategory(''); setNote(''); setFileData(null);
         }, 1200);
       } else {
@@ -156,12 +169,49 @@ export default function ReceiptsSubmitOrder() {
           </div>
         </div>
 
+        {/* Payment Method */}
+        <div>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Payment Method</label>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', cursor: 'pointer' }}>
+              <input 
+                type="radio" 
+                name="paymentMethod" 
+                value="Crypto" 
+                checked={paymentMethod === 'Crypto'} 
+                onChange={e => setPaymentMethod(e.target.value)} 
+              />
+              Crypto Payment (Manual)
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', cursor: 'pointer' }}>
+              <input 
+                type="radio" 
+                name="paymentMethod" 
+                value="Wallet Balance" 
+                checked={paymentMethod === 'Wallet Balance'} 
+                onChange={e => setPaymentMethod(e.target.value)} 
+                disabled={!user || user.credits < (category === 'United States Receipt' || category === 'Canada Receipt' ? 15 : 20)}
+              />
+              Wallet Balance (${user ? user.credits : 0} available)
+            </label>
+          </div>
+          {paymentMethod === 'Wallet Balance' && user && user.credits < (category === 'United States Receipt' || category === 'Canada Receipt' ? 15 : 20) && (
+            <div style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '5px' }}>Insufficient balance. Please deposit funds first.</div>
+          )}
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <button type="submit" disabled={submitting} style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: submitting ? 0.7 : 1 }}>
+          <button type="submit" disabled={submitting || (paymentMethod === 'Wallet Balance' && user.credits < (category === 'United States Receipt' || category === 'Canada Receipt' ? 15 : 20))} style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: (submitting || (paymentMethod === 'Wallet Balance' && user.credits < (category === 'United States Receipt' || category === 'Canada Receipt' ? 15 : 20))) ? 0.7 : 1 }}>
             {submitting ? 'Submitting...' : 'Create Order & Pay'}
           </button>
         </div>
       </form>
+      
+      {orderSuccessMsg && (
+        <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'rgba(76, 175, 80, 0.1)', border: '1px solid #4caf50', borderRadius: '8px', color: '#4caf50', textAlign: 'center', fontWeight: 'bold' }}>
+          ✅ {orderSuccessMsg}
+        </div>
+      )}
 
       {/* Full screen order processing loader overlay */}
       {loadingTransition && (

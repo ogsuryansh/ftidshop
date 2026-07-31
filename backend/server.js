@@ -11,6 +11,7 @@ const User = require('./models/User');
 const Admin = require('./models/Admin');
 const Order = require('./models/Order');
 const Product = require('./models/Product');
+const Settings = require('./models/Settings');
 const { verifyPayment } = require('./services/cryptoVerifier');
 
 // ─── Wallet addresses (set in .env) ──────────────────────────────────────────
@@ -99,6 +100,12 @@ const connectDB = async () => {
             ];
             await Product.insertMany(initialProducts);
             console.log('Initial product catalog seeded successfully.');
+        }
+
+        const settingsCount = await Settings.countDocuments();
+        if (settingsCount === 0) {
+            await new Settings().save();
+            console.log('Default settings created.');
         }
     } catch (err) {
         console.error('MongoDB seeding error:', err);
@@ -458,16 +465,36 @@ app.delete('/api/admin/products/:id', authAdmin, async (req, res) => {
 // User Order endpoints
 app.post('/api/orders', async (req, res) => {
     try {
-        const { paymentCurrency } = req.body;
+        const { paymentCurrency, paymentMethod, price, userId, type } = req.body;
         const orderData = { ...req.body };
-        // Attach the real wallet address for the chosen currency
-        if (paymentCurrency && WALLET_ADDRESSES[paymentCurrency]) {
+        
+        // If user pays with wallet balance
+        if (paymentMethod === 'Wallet Balance' && type !== 'deposit' && type !== 'Deposit') {
+            const user = await User.findById(userId);
+            if (!user) return res.status(404).json({ error: 'User not found' });
+            
+            if (user.credits < price) {
+                return res.status(400).json({ error: 'Insufficient wallet balance.' });
+            }
+            
+            // Deduct balance
+            user.credits -= price;
+            await user.save();
+            
+            orderData.paymentStatus = 'Paid';
+            orderData.status = 'Pending';
+        } else if (paymentCurrency && WALLET_ADDRESSES[paymentCurrency]) {
+            // Attach the real wallet address for the chosen currency
             orderData.paymentAddress = WALLET_ADDRESSES[paymentCurrency];
         }
+        
         const newOrder = new Order(orderData);
         await newOrder.save();
         res.json(newOrder);
-    } catch (err) { res.status(500).json({ error: 'Server error' }); }
+    } catch (err) { 
+        console.error(err);
+        res.status(500).json({ error: 'Server error' }); 
+    }
 });
 
 app.get('/api/orders/:userId', async (req, res) => {
@@ -510,6 +537,20 @@ app.post('/api/verify-payment/:orderId', async (req, res) => {
                 { paymentStatus: 'Paid', status: 'Pending', txHash: result.txHash },
                 { new: true }
             );
+            
+            // Deposit Auto-Processing
+            if (updated.type === 'deposit' || updated.type === 'Deposit') {
+                const settings = await Settings.findOne() || new Settings();
+                let bonus = 0;
+                if (updated.price >= settings.depositBonusThreshold) {
+                    bonus = (updated.price * settings.depositBonusPercentage) / 100;
+                }
+                const totalAmount = updated.price + bonus;
+                await User.findByIdAndUpdate(updated.userId, { $inc: { credits: totalAmount } });
+                await Order.findByIdAndUpdate(updated._id, { status: 'Completed' });
+                updated.status = 'Completed';
+            }
+
             return res.json({ verified: true, order: updated, txHash: result.txHash });
         }
 
@@ -551,11 +592,24 @@ async function runPaymentPoller() {
             });
 
             if (result.verified) {
-                await Order.findByIdAndUpdate(order._id, {
+                const updated = await Order.findByIdAndUpdate(order._id, {
                     paymentStatus: 'Paid',
                     status: 'Pending',
                     txHash: result.txHash
-                });
+                }, { new: true });
+                
+                // Deposit Auto-Processing
+                if (updated.type === 'deposit' || updated.type === 'Deposit') {
+                    const settings = await Settings.findOne() || new Settings();
+                    let bonus = 0;
+                    if (updated.price >= settings.depositBonusThreshold) {
+                        bonus = (updated.price * settings.depositBonusPercentage) / 100;
+                    }
+                    const totalAmount = updated.price + bonus;
+                    await User.findByIdAndUpdate(updated.userId, { $inc: { credits: totalAmount } });
+                    await Order.findByIdAndUpdate(updated._id, { status: 'Completed' });
+                }
+
                 console.log(`[Poller] ✅ Payment confirmed for order ${order._id} | TX: ${result.txHash}`);
             }
         }

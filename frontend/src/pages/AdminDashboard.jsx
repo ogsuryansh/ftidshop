@@ -8,8 +8,13 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard'); // dashboard, orders, users, transactions
+  const [currentView, setCurrentView] = useState('dashboard'); // dashboard, orders, users, transactions, settings
   const [deletingId, setDeletingId] = useState(null);
+
+  const [settings, setSettings] = useState({ minDeposit: 20, depositBonusThreshold: 100, depositBonusPercentage: 20 });
+  const [balanceModalUser, setBalanceModalUser] = useState(null);
+  const [balanceAmount, setBalanceAmount] = useState('');
+  const [balanceAction, setBalanceAction] = useState('add');
 
   const [products, setProducts] = useState([]);
   const [productCategoryFilter, setProductCategoryFilter] = useState('All');
@@ -48,10 +53,11 @@ export default function AdminDashboard() {
     }
 
     try {
-      const [uRes, oRes, pRes] = await Promise.all([
+      const [uRes, oRes, pRes, sRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/admin/users`, { headers: getAuthHeaders() }),
         fetch(`${API_BASE_URL}/api/admin/orders`, { headers: getAuthHeaders() }),
-        fetch(`${API_BASE_URL}/api/admin/products`, { headers: getAuthHeaders() })
+        fetch(`${API_BASE_URL}/api/admin/products`, { headers: getAuthHeaders() }),
+        fetch(`${API_BASE_URL}/api/settings`, { headers: getAuthHeaders() })
       ]);
 
       if (uRes.status === 401 || uRes.status === 403 || oRes.status === 401 || oRes.status === 403) {
@@ -62,9 +68,11 @@ export default function AdminDashboard() {
       const uData = await uRes.json();
       const oData = await oRes.json();
       const pData = await pRes.json();
+      const sData = await sRes.json();
       setUsers(Array.isArray(uData) ? uData : []);
       setOrders(Array.isArray(oData) ? oData : []);
       setProducts(Array.isArray(pData) ? pData : []);
+      if (sData && sData.minDeposit) setSettings(sData);
     } catch (err) {
       console.error('Fetch admin data error:', err);
     }
@@ -146,6 +154,43 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error(err);
       alert('Error deleting product');
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/settings`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(settings)
+      });
+      if (res.ok) alert('Settings saved successfully!');
+      else alert('Failed to save settings');
+    } catch (err) {
+      alert('Error saving settings');
+    }
+  };
+
+  const handleBalanceUpdate = async (e) => {
+    e.preventDefault();
+    if (!balanceAmount || isNaN(Number(balanceAmount))) return alert('Invalid amount');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/users/${balanceModalUser._id}/balance`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ action: balanceAction, amount: Number(balanceAmount) })
+      });
+      if (res.ok) {
+        setBalanceModalUser(null);
+        setBalanceAmount('');
+        fetchData();
+        alert('Balance updated successfully!');
+      } else {
+        alert('Failed to update balance');
+      }
+    } catch (err) {
+      alert('Error updating balance');
     }
   };
 
@@ -258,6 +303,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => { setCurrentView('users'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'users' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <i className='bx bx-user'></i> Manage Users ({users.length})
+          </button>
+          <button onClick={() => { setCurrentView('settings'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'settings' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+            <i className='bx bx-cog'></i> System Settings
           </button>
         </div>
       </div>
@@ -450,6 +498,7 @@ export default function AdminDashboard() {
                     <th className="p_2">Email</th>
                     <th className="p_2">Credits</th>
                     <th className="p_2">Joined</th>
+                    <th className="p_2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -459,11 +508,37 @@ export default function AdminDashboard() {
                       <td className="p_2">{u.email}</td>
                       <td className="p_2" style={{ color: '#4caf50', fontWeight: 'bold' }}>${u.credits}</td>
                       <td className="p_2">{new Date(u.createdAt).toLocaleDateString()}</td>
+                      <td className="p_2">
+                        <button onClick={() => setBalanceModalUser(u)} style={{ backgroundColor: '#2196f3', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>
+                          💰 Edit Balance
+                        </button>
+                      </td>
                     </tr>
                   ))}
-                   {users.length === 0 && <tr><td colSpan="4" className="p_4 align_center color_neutral">No users found.</td></tr>}
+                   {users.length === 0 && <tr><td colSpan="5" className="p_4 align_center color_neutral">No users found.</td></tr>}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {currentView === 'settings' && (
+            <div className="bg_secondary radius_medium p_6">
+              <h3 className="text_large mb_4">System Settings</h3>
+              <form onSubmit={handleSaveSettings} style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '500px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Minimum Deposit ($)</label>
+                  <input type="number" step="any" value={settings.minDeposit} onChange={e => setSettings({...settings, minDeposit: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Deposit Bonus Threshold ($)</label>
+                  <input type="number" step="any" value={settings.depositBonusThreshold} onChange={e => setSettings({...settings, depositBonusThreshold: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Deposit Bonus Percentage (%)</label>
+                  <input type="number" step="any" value={settings.depositBonusPercentage} onChange={e => setSettings({...settings, depositBonusPercentage: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                </div>
+                <button type="submit" style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Save Settings</button>
+              </form>
             </div>
           )}
 
@@ -757,6 +832,34 @@ export default function AdminDashboard() {
                 >
                   {editingProduct ? 'Save Changes' : 'Create Product'}
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Balance Modal */}
+      {balanceModalUser && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ backgroundColor: '#1c1e1f', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px', border: '1px solid rgba(0, 242, 254, 0.3)' }}>
+            <h3 style={{ color: '#fff', marginTop: 0, fontSize: '18px' }}>Update Balance</h3>
+            <p style={{ color: '#aaa', fontSize: '14px', marginBottom: '20px' }}>User: <strong style={{color: '#fff'}}>{balanceModalUser.email}</strong></p>
+            
+            <form onSubmit={handleBalanceUpdate}>
+              <div style={{ marginBottom: '15px' }}>
+                <label style={{ display: 'block', color: '#ccc', marginBottom: '8px', fontSize: '13px' }}>Action</label>
+                <select value={balanceAction} onChange={e => setBalanceAction(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: '#12151a', color: '#fff', border: '1px solid #333', borderRadius: '6px', outline: 'none' }}>
+                  <option value="add">Add Funds</option>
+                  <option value="cut">Cut Funds</option>
+                </select>
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', color: '#ccc', marginBottom: '8px', fontSize: '13px' }}>Amount ($)</label>
+                <input type="number" step="any" required value={balanceAmount} onChange={e => setBalanceAmount(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: '#12151a', color: '#fff', border: '1px solid #333', borderRadius: '6px', boxSizing: 'border-box', outline: 'none' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setBalanceModalUser(null)} style={{ padding: '8px 16px', backgroundColor: '#333', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancel</button>
+                <button type="submit" style={{ padding: '8px 16px', background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Update Balance</button>
               </div>
             </form>
           </div>

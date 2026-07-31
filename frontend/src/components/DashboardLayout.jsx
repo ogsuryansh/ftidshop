@@ -39,8 +39,31 @@ export default function DashboardLayout() {
           </div>
 
           <div className="topbar_right">
-            <div className="wallet_badge">
-              <i className='bx bx-wallet'></i> <span>${credits}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="wallet_badge">
+                <i className='bx bx-wallet'></i> <span>${credits}</span>
+              </div>
+              <Link 
+                to="/dashboard#deposits" 
+                onClick={() => setTimeout(() => window.dispatchEvent(new Event('open-deposits')), 50)}
+                title="Deposit Funds"
+                style={{ 
+                  background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', 
+                  color: '#fff', 
+                  border: 'none', 
+                  borderRadius: '50%', 
+                  width: '32px', 
+                  height: '32px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  cursor: 'pointer', 
+                  fontSize: '20px',
+                  textDecoration: 'none',
+                  boxShadow: '0 2px 8px rgba(0,242,254,0.4)'
+                }}>
+                <i className='bx bx-plus'></i>
+              </Link>
             </div>
             <div className="user_profile_pill">
               <div className="user_avatar">{username.charAt(0).toUpperCase()}</div>
