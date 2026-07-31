@@ -405,6 +405,48 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
+// ─── Settings Endpoints ─────────────────────────────────────────────────────
+app.get('/api/settings', async (req, res) => {
+    try {
+        let settings = await Settings.findOne();
+        if (!settings) settings = await Settings.create({});
+        res.json(settings);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error fetching settings' });
+    }
+});
+
+app.put('/api/admin/settings', authAdmin, async (req, res) => {
+    try {
+        const settings = await Settings.findOneAndUpdate({}, req.body, { new: true, upsert: true });
+        res.json(settings);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error updating settings' });
+    }
+});
+
+app.put('/api/admin/users/:id/balance', authAdmin, async (req, res) => {
+    try {
+        const { action, amount } = req.body;
+        const user = await User.findById(req.params.id);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        
+        if (action === 'add') {
+            user.credits += Number(amount);
+        } else if (action === 'cut') {
+            user.credits -= Number(amount);
+            if (user.credits < 0) user.credits = 0;
+        }
+        await user.save();
+        res.json(user);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error updating balance' });
+    }
+});
+
 // Admin endpoints (Protected)
 app.get('/api/admin/products', authAdmin, async (req, res) => {
     try {
