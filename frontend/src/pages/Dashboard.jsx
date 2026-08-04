@@ -36,9 +36,6 @@ export default function Dashboard() {
       .then(res => res.json())
       .then(data => {
         if (data && data._id) {
-          setUser(prev => {
-            const updated = {
-              ...prev,
           setUser(data);
           localStorage.setItem('user', JSON.stringify(data));
         }

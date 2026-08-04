@@ -358,6 +358,33 @@ app.post('/api/admin/login', async (req, res) => {
     }
 });
 
+// Admin change password endpoint (Protected)
+app.put('/api/admin/change-password', authAdmin, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+    if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+    try {
+        const admin = await Admin.findById(req.admin.id);
+        if (!admin) return res.status(404).json({ error: 'Admin user not found' });
+
+        const isMatch = await bcrypt.compare(currentPassword, admin.password);
+        if (!isMatch) return res.status(400).json({ error: 'Current password is incorrect' });
+
+        const salt = await bcrypt.genSalt(10);
+        admin.password = await bcrypt.hash(newPassword, salt);
+        await admin.save();
+
+        res.json({ message: 'Admin password updated successfully!' });
+    } catch (err) {
+        console.error('Change password error:', err);
+        res.status(500).json({ error: 'Server error updating password' });
+    }
+});
+
 // Admin endpoints (Protected)
 app.get('/api/admin/users', authAdmin, async (req, res) => {
     try {

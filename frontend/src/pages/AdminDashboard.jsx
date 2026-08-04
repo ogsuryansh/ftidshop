@@ -7,9 +7,12 @@ export default function AdminDashboard() {
   const [admin, setAdmin] = useState(null);
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard'); // dashboard, orders, users, transactions, settings
+  const [currentView, setCurrentView] = useState('dashboard'); // dashboard, orders, users, transactions, settings, security
   const [deletingId, setDeletingId] = useState(null);
+
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [passwordMsg, setPasswordMsg] = useState({ type: '', text: '' });
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const [settings, setSettings] = useState({ minDeposit: 20, depositBonusThreshold: 100, depositBonusPercentage: 20 });
   const [balanceModalUser, setBalanceModalUser] = useState(null);
@@ -21,7 +24,7 @@ export default function AdminDashboard() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [productForm, setProductForm] = useState({
-    category: 'Insider Scans "Only tracking needed"',
+    category: 'United States US',
     courier: 'UPS',
     name: '',
     price: '',
@@ -30,6 +33,38 @@ export default function AdminDashboard() {
     badgeColor: '#d9534f',
     active: true
   });
+
+  const standardCategories = [
+    'United States US',
+    'Canada CA',
+    'Germany DE',
+    'United Kingdom UK',
+    'France FR',
+    'Insider Scans "Only tracking needed"'
+  ];
+
+  const categoryOptions = Array.from(new Set([
+    ...standardCategories,
+    ...products.map(p => p.category).filter(Boolean)
+  ]));
+
+  const standardCouriers = [
+    'UPS',
+    'FedEx',
+    'USPS',
+    'DHL',
+    'Canada Post',
+    'Purolator',
+    'DPD',
+    'GLS',
+    'Hermes',
+    'DHL Express'
+  ];
+
+  const courierOptions = Array.from(new Set([
+    ...standardCouriers,
+    ...products.map(p => p.courier).filter(Boolean)
+  ]));
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('admin_token');
@@ -115,7 +150,7 @@ export default function AdminDashboard() {
         setIsProductModalOpen(false);
         setEditingProduct(null);
         setProductForm({
-          category: 'Insider Scans "Only tracking needed"',
+          category: productCategoryFilter !== 'All' ? productCategoryFilter : 'United States US',
           courier: 'UPS',
           name: '',
           price: '',
@@ -254,6 +289,41 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPasswordMsg({ type: '', text: '' });
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordMsg({ type: 'error', text: 'New passwords do not match!' });
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordMsg({ type: 'error', text: 'New password must be at least 6 characters.' });
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/admin/change-password`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPasswordMsg({ type: 'success', text: data.message || 'Password updated successfully!' });
+        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        setPasswordMsg({ type: 'error', text: data.error || 'Failed to update password.' });
+      }
+    } catch (err) {
+      setPasswordMsg({ type: 'error', text: 'Server connection error.' });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
   // Derived real transactions from paid/confirmed orders (NO dummy data)
   const paidOrders = orders.filter(o => o.paymentStatus === 'Paid' || o.txHash);
 
@@ -306,6 +376,9 @@ export default function AdminDashboard() {
           </button>
           <button onClick={() => { setCurrentView('settings'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'settings' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             <i className='bx bx-cog'></i> System Settings
+          </button>
+          <button onClick={() => { setCurrentView('security'); setIsSidebarOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', color: currentView === 'security' ? '#00f2fe' : '#999', fontSize: '14px', padding: '10px 0', background: 'transparent', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+            <i className='bx bx-lock-alt'></i> Admin Security
           </button>
         </div>
       </div>
@@ -542,6 +615,87 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {currentView === 'security' && (
+            <div className="bg_secondary radius_medium p_6">
+              <h3 className="text_large mb_2">Admin Security</h3>
+              <p style={{ color: '#aaa', fontSize: '13px', marginBottom: '24px' }}>Update your administrative login password.</p>
+              
+              {passwordMsg.text && (
+                <div style={{
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  marginBottom: '20px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  maxWidth: '500px',
+                  backgroundColor: passwordMsg.type === 'success' ? 'rgba(76, 175, 80, 0.15)' : 'rgba(239, 83, 80, 0.15)',
+                  border: `1px solid ${passwordMsg.type === 'success' ? '#4caf50' : '#ef5350'}`,
+                  color: passwordMsg.type === 'success' ? '#81c784' : '#ef5350'
+                }}>
+                  {passwordMsg.type === 'success' ? '✅ ' : '⚠️ '} {passwordMsg.text}
+                </div>
+              )}
+
+              <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '500px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '13px', fontWeight: '600' }}>Current Password</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Enter current password"
+                    value={passwordForm.currentPassword}
+                    onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '13px', fontWeight: '600' }}>New Password</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Enter new password (min. 6 characters)"
+                    value={passwordForm.newPassword}
+                    onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '13px', fontWeight: '600' }}>Confirm New Password</label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Re-enter new password"
+                    value={passwordForm.confirmPassword}
+                    onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '8px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  style={{
+                    background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    cursor: isUpdatingPassword ? 'not-allowed' : 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    marginTop: '6px'
+                  }}
+                >
+                  {isUpdatingPassword ? 'Updating Password...' : 'Update Password'}
+                </button>
+              </form>
+            </div>
+          )}
+
           {currentView === 'products' && (
             <div className="bg_secondary radius_medium p_6" style={{ overflowX: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
@@ -552,8 +706,9 @@ export default function AdminDashboard() {
                 <button
                   onClick={() => {
                     setEditingProduct(null);
+                    const initialCategory = productCategoryFilter !== 'All' ? productCategoryFilter : 'United States US';
                     setProductForm({
-                      category: 'Insider Scans "Only tracking needed"',
+                      category: initialCategory,
                       courier: 'UPS',
                       name: '',
                       price: '',
@@ -725,26 +880,62 @@ export default function AdminDashboard() {
             <form onSubmit={handleSaveProduct} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category / Country</label>
-                <input
-                  type="text"
-                  required
-                  placeholder='e.g. Insider Scans "Only tracking needed" or United States US'
-                  value={productForm.category}
-                  onChange={e => setProductForm({ ...productForm, category: e.target.value })}
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px' }}
-                />
+                <select
+                  value={categoryOptions.includes(productForm.category) ? productForm.category : '__custom__'}
+                  onChange={e => {
+                    if (e.target.value === '__custom__') {
+                      setProductForm({ ...productForm, category: '' });
+                    } else {
+                      setProductForm({ ...productForm, category: e.target.value });
+                    }
+                  }}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px', marginBottom: (!categoryOptions.includes(productForm.category) || productForm.category === '') ? '8px' : '0' }}
+                >
+                  {categoryOptions.map(cat => (
+                    <option key={cat} value={cat} style={{ backgroundColor: '#161a22', color: '#fff' }}>{cat}</option>
+                  ))}
+                  <option value="__custom__" style={{ backgroundColor: '#161a22', color: '#00f2fe' }}>➕ Type Custom Category / Country...</option>
+                </select>
+                {(!categoryOptions.includes(productForm.category) || productForm.category === '') && (
+                  <input
+                    type="text"
+                    required
+                    placeholder='Enter new custom category (e.g. United Kingdom UK)'
+                    value={productForm.category}
+                    onChange={e => setProductForm({ ...productForm, category: e.target.value })}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid #00f2fe', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px', marginTop: '6px' }}
+                  />
+                )}
               </div>
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Courier</label>
-                <input
-                  type="text"
-                  required
-                  placeholder='e.g. UPS, FedEx, USPS, Canada Post, DHL'
-                  value={productForm.courier}
-                  onChange={e => setProductForm({ ...productForm, courier: e.target.value })}
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px' }}
-                />
+                <select
+                  value={courierOptions.includes(productForm.courier) ? productForm.courier : '__custom__'}
+                  onChange={e => {
+                    if (e.target.value === '__custom__') {
+                      setProductForm({ ...productForm, courier: '' });
+                    } else {
+                      setProductForm({ ...productForm, courier: e.target.value });
+                    }
+                  }}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px', marginBottom: (!courierOptions.includes(productForm.courier) || productForm.courier === '') ? '8px' : '0' }}
+                >
+                  {courierOptions.map(cour => (
+                    <option key={cour} value={cour} style={{ backgroundColor: '#161a22', color: '#fff' }}>{cour}</option>
+                  ))}
+                  <option value="__custom__" style={{ backgroundColor: '#161a22', color: '#00f2fe' }}>➕ Type Custom Courier...</option>
+                </select>
+                {(!courierOptions.includes(productForm.courier) || productForm.courier === '') && (
+                  <input
+                    type="text"
+                    required
+                    placeholder='Enter new custom courier (e.g. Royal Mail, DPD)'
+                    value={productForm.courier}
+                    onChange={e => setProductForm({ ...productForm, courier: e.target.value })}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid #00f2fe', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px', marginTop: '6px' }}
+                  />
+                )}
               </div>
 
               <div>

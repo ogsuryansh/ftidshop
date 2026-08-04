@@ -11,8 +11,6 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   const [showQR, setShowQR] = useState(false);
   const pollRef = useRef(null);
 
-  if (!order) return null;
-
   // Default fallback wallet addresses
   const defaultAddresses = {
     USDT_TRC20: 'TBtgkq5GTy1q4thASK23hmfRrJ8grLD4FR',
@@ -114,6 +112,8 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
       document.body.style.overflow = originalStyle || 'initial';
     };
   }, []);
+
+  if (!order) return null;
 
   return (
     <div style={{
