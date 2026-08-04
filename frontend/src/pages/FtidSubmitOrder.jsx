@@ -73,8 +73,24 @@ export default function FtidSubmitOrder() {
   };
 
   const countryConfigs = React.useMemo(() => {
-    if (dbProducts.length === 0) return defaultCountryConfigs;
     const configs = {};
+    
+    // Pre-populate with default couriers for known categories
+    Object.keys(defaultCountryConfigs).forEach(cat => {
+      configs[cat] = {
+        couriers: [...defaultCountryConfigs[cat].couriers],
+        methods: []
+      };
+    });
+
+    if (dbProducts.length === 0) {
+      // If there are no DB products, also copy the default methods
+      Object.keys(defaultCountryConfigs).forEach(cat => {
+        configs[cat].methods = [...defaultCountryConfigs[cat].methods];
+      });
+      return configs;
+    }
+
     dbProducts.forEach(item => {
       if (!configs[item.category]) {
         configs[item.category] = { couriers: [], methods: [] };

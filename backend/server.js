@@ -368,16 +368,35 @@ app.put('/api/admin/change-password', authAdmin, async (req, res) => {
         return res.status(400).json({ error: 'New password must be at least 6 characters long' });
     }
     try {
-        const admin = await Admin.findById(req.admin.id);
-        if (!admin) return res.status(404).json({ error: 'Admin user not found' });
+        let admin;
+        if (req.admin && req.admin.id) {
+            admin = await Admin.findById(req.admin.id);
+        }
+        if (!admin) {
+            admin = await Admin.findOne({ username: 'admin' });
+        }
+        if (!admin) {
+            admin = await Admin.findOne();
+        }
+        
+        if (!admin) {
+            console.error('[ChangePassword] Admin user not found in database.');
+            return res.status(404).json({ error: 'Admin user not found' });
+        }
+
+        console.log(`[ChangePassword] Attempting password update for admin: ${admin.username}`);
 
         const isMatch = await bcrypt.compare(currentPassword, admin.password);
-        if (!isMatch) return res.status(400).json({ error: 'Current password is incorrect' });
+        if (!isMatch) {
+            console.warn(`[ChangePassword] Password mismatch for admin: ${admin.username}`);
+            return res.status(400).json({ error: 'Current password is incorrect' });
+        }
 
         const salt = await bcrypt.genSalt(10);
         admin.password = await bcrypt.hash(newPassword, salt);
         await admin.save();
 
+        console.log(`[ChangePassword] Admin password updated successfully for ${admin.username}`);
         res.json({ message: 'Admin password updated successfully!' });
     } catch (err) {
         console.error('Change password error:', err);
