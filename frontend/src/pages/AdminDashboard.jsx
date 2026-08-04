@@ -8,6 +8,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [orders, setOrders] = useState([]);
   const [currentView, setCurrentView] = useState('dashboard'); // dashboard, orders, users, transactions, settings, security
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
