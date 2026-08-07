@@ -75,18 +75,12 @@ export default function FtidSubmitOrder() {
   const countryConfigs = React.useMemo(() => {
     const configs = {};
     
-    // Pre-populate with default couriers for known categories
-    Object.keys(defaultCountryConfigs).forEach(cat => {
-      configs[cat] = {
-        couriers: [...defaultCountryConfigs[cat].couriers],
-        methods: []
-      };
-    });
-
     if (dbProducts.length === 0) {
-      // If there are no DB products, also copy the default methods
       Object.keys(defaultCountryConfigs).forEach(cat => {
-        configs[cat].methods = [...defaultCountryConfigs[cat].methods];
+        configs[cat] = {
+          couriers: [...defaultCountryConfigs[cat].couriers],
+          methods: [...defaultCountryConfigs[cat].methods]
+        };
       });
       return configs;
     }
@@ -95,8 +89,9 @@ export default function FtidSubmitOrder() {
       if (!configs[item.category]) {
         configs[item.category] = { couriers: [], methods: [] };
       }
-      if (!configs[item.category].couriers.includes(item.courier)) {
-        configs[item.category].couriers.push(item.courier);
+      const courierName = item.courier || 'Any';
+      if (!configs[item.category].couriers.includes(courierName)) {
+        configs[item.category].couriers.push(courierName);
       }
       configs[item.category].methods.push({
         name: item.name,
@@ -104,14 +99,14 @@ export default function FtidSubmitOrder() {
         desc: item.desc,
         badge: item.badge,
         badgeColor: item.badgeColor,
-        courier: item.courier
+        courier: courierName
       });
     });
     return configs;
   }, [dbProducts]);
 
   const currentConfig = countryConfigs[country] || Object.values(countryConfigs)[0] || { couriers: [], methods: [] };
-  const availableMethods = currentConfig.methods ? currentConfig.methods.filter(m => !m.courier || m.courier === courier || currentConfig.methods.length === 1) : [];
+  const availableMethods = currentConfig.methods ? currentConfig.methods.filter(m => m.courier === 'Any' || m.courier === courier) : [];
 
   // Automatically select first courier and method when country changes
   useEffect(() => {
@@ -251,39 +246,43 @@ export default function FtidSubmitOrder() {
         <div>
           <label style={{ display: 'block', marginBottom: '12px', color: '#ccc', fontSize: '14px' }}>Methods</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {(availableMethods.length > 0 ? availableMethods : currentConfig.methods).map((m) => (
-              <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <label style={{ color: '#ccc', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input 
-                    type="radio" 
-                    name="method" 
-                    value={m.name} 
-                    checked={method === m.name} 
-                    onChange={e => setMethod(e.target.value)} 
-                    required 
-                  /> 
-                  <span>{m.name}</span>
-                  <strong style={{ color: '#4caf50', marginLeft: '4px' }}>{m.price}$</strong>
-                </label>
+            {availableMethods.length > 0 ? (
+              availableMethods.map((m) => (
+                <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <label style={{ color: '#ccc', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input 
+                      type="radio" 
+                      name="method" 
+                      value={m.name} 
+                      checked={method === m.name} 
+                      onChange={e => setMethod(e.target.value)} 
+                      required 
+                    /> 
+                    <span>{m.name}</span>
+                    <strong style={{ color: '#4caf50', marginLeft: '4px' }}>{m.price}$</strong>
+                  </label>
 
-                {m.badge && (
-                  <span 
-                    onClick={() => m.badge === 'Click to read description' && setActiveDesc(m)}
-                    style={{ 
-                      backgroundColor: m.badgeColor || '#4caf50', 
-                      color: '#fff', 
-                      fontSize: '11px', 
-                      padding: '3px 8px', 
-                      borderRadius: '12px', 
-                      cursor: m.badge === 'Click to read description' ? 'pointer' : 'default',
-                      display: 'inline-block'
-                    }}
-                  >
-                    {m.badge}
-                  </span>
-                )}
-              </div>
-            ))}
+                  {m.badge && (
+                    <span 
+                      onClick={() => m.badge === 'Click to read description' && setActiveDesc(m)}
+                      style={{ 
+                        backgroundColor: m.badgeColor || '#4caf50', 
+                        color: '#fff', 
+                        fontSize: '11px', 
+                        padding: '3px 8px', 
+                        borderRadius: '12px', 
+                        cursor: m.badge === 'Click to read description' ? 'pointer' : 'default',
+                        display: 'inline-block'
+                      }}
+                    >
+                      {m.badge}
+                    </span>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div style={{ color: '#888', fontSize: '14px' }}>No methods available for the selected courier.</div>
+            )}
           </div>
         </div>
 
