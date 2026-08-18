@@ -6,6 +6,8 @@ const { randomUUID: uuidv4 } = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+const nodemailer = require('nodemailer');
+const otpStore = new Map(); // Key: adminId (string), Value: { otp, expiresAt }
 
 const User = require('./models/User');
 const Admin = require('./models/Admin');
@@ -349,8 +351,79 @@ app.post('/api/admin/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, admin.password);
         if (!isMatch) return res.status(400).json({ error: 'Invalid admin credentials' });
         
-        const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
+        // Generate OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes expiration
         
+        otpStore.set(admin._id.toString(), { otp: otpCode, expiresAt });
+        
+        // Setup Nodemailer transporter
+        let transporter;
+        if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+            transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: process.env.SMTP_PORT || 587,
+                secure: process.env.SMTP_SECURE === 'true', // true for 465
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS
+                }
+            });
+        } else {
+            // Fallback to Ethereal
+            let testAccount = await nodemailer.createTestAccount();
+            transporter = nodemailer.createTransport({
+                host: "smtp.ethereal.email",
+                port: 587,
+                secure: false,
+                auth: { user: testAccount.user, pass: testAccount.pass }
+            });
+            console.warn("Using Ethereal for email. Add SMTP_* env vars for real emails.");
+        }
+        
+        let info = await transporter.sendMail({
+            from: '"ArpanFtid Admin" <admin@arpanftid.com>',
+            to: process.env.ADMIN_EMAIL || "vishalgiri0044@gmail.com",
+            subject: "Admin Login OTP Code",
+            text: `Your 2-step verification code is: ${otpCode}`,
+            html: `<b>Your 2-step verification code is: ${otpCode}</b>`,
+        });
+        
+        console.log("OTP sent. Message ID:", info.messageId);
+        if (!process.env.SMTP_HOST) {
+            console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+        }
+
+        res.json({ step: '2FA_REQUIRED', adminId: admin._id });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/admin/verify-2fa', async (req, res) => {
+    const { adminId, otp } = req.body;
+    try {
+        if (!adminId || !otp) return res.status(400).json({ error: 'Missing adminId or otp' });
+        
+        const store = otpStore.get(adminId);
+        if (!store) return res.status(400).json({ error: 'OTP expired or invalid' });
+        
+        if (Date.now() > store.expiresAt) {
+            otpStore.delete(adminId);
+            return res.status(400).json({ error: 'OTP expired' });
+        }
+        
+        if (store.otp !== otp) {
+            return res.status(400).json({ error: 'Invalid OTP' });
+        }
+        
+        // OTP valid, issue token
+        otpStore.delete(adminId);
+        const admin = await Admin.findById(adminId);
+        if (!admin) return res.status(400).json({ error: 'Admin not found' });
+        
+        const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
         res.json({ token, admin: { id: admin._id, username: admin.username } });
     } catch (err) {
         console.error(err);

@@ -67,6 +67,20 @@ export default function AdminDashboard() {
     ...products.map(p => p.courier).filter(Boolean)
   ]));
 
+  const standardMethodNames = [
+    'FTID',
+    'FTIDV3',
+    'FTIDNA',
+    'LIT',
+    'UPS RTS Manual',
+    'Rts insider city/any state'
+  ];
+
+  const methodOptions = Array.from(new Set([
+    ...standardMethodNames,
+    ...products.map(p => p.name).filter(Boolean)
+  ]));
+
   const handleLogout = useCallback(() => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin');
@@ -941,14 +955,32 @@ export default function AdminDashboard() {
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#8a94a6', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Method Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder='e.g. Rts insider city/any state'
-                  value={productForm.name}
-                  onChange={e => setProductForm({ ...productForm, name: e.target.value })}
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px' }}
-                />
+                <select
+                  value={methodOptions.includes(productForm.name) ? productForm.name : '__custom__'}
+                  onChange={e => {
+                    if (e.target.value === '__custom__') {
+                      setProductForm({ ...productForm, name: '' });
+                    } else {
+                      setProductForm({ ...productForm, name: e.target.value });
+                    }
+                  }}
+                  style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px', marginBottom: (!methodOptions.includes(productForm.name) || productForm.name === '') ? '8px' : '0' }}
+                >
+                  {methodOptions.map(mName => (
+                    <option key={mName} value={mName} style={{ backgroundColor: '#161a22', color: '#fff' }}>{mName}</option>
+                  ))}
+                  <option value="__custom__" style={{ backgroundColor: '#161a22', color: '#00f2fe' }}>➕ Type Custom Method Name...</option>
+                </select>
+                {(!methodOptions.includes(productForm.name) || productForm.name === '') && (
+                  <input
+                    type="text"
+                    required
+                    placeholder='Enter new custom method name (e.g. FTID, LIT)'
+                    value={productForm.name}
+                    onChange={e => setProductForm({ ...productForm, name: e.target.value })}
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#161a22', border: '1px solid #00f2fe', color: '#fff', outline: 'none', boxSizing: 'border-box', fontSize: '13px', marginTop: '6px' }}
+                  />
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '15px' }}>
