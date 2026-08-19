@@ -5,7 +5,7 @@ import DepositModal from './DepositModal';
 export default function DashboardLayout() {
   const [user, setUser] = useState(() => {
     const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    return userStr && userStr !== "undefined" ? JSON.parse(userStr) : null;
   });
   const username = user ? user.name : 'Unknown';
   const credits = user ? user.credits : 0;
@@ -15,7 +15,7 @@ export default function DashboardLayout() {
   useEffect(() => {
     const handleUserUpdated = () => {
       const userStr = localStorage.getItem('user');
-      setUser(userStr ? JSON.parse(userStr) : null);
+      setUser(userStr && userStr !== "undefined" ? JSON.parse(userStr) : null);
     };
     window.addEventListener('user-updated', handleUserUpdated);
     return () => window.removeEventListener('user-updated', handleUserUpdated);

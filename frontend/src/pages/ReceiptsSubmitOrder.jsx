@@ -13,7 +13,7 @@ export default function ReceiptsSubmitOrder() {
   const [orderSuccessMsg, setOrderSuccessMsg] = useState('');
 
   const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const user = userStr && userStr !== "undefined" ? JSON.parse(userStr) : null;
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];

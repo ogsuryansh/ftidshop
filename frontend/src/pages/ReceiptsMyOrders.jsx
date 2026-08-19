@@ -9,7 +9,7 @@ export default function ReceiptsMyOrders() {
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : null;
+    const user = userStr && userStr !== "undefined" ? JSON.parse(userStr) : null;
     if (user) {
       fetch(`${API_BASE_URL}/api/orders/${user.id}`)
         .then(res => res.json())

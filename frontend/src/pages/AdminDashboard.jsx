@@ -131,7 +131,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const adminData = localStorage.getItem('admin');
     const token = localStorage.getItem('admin_token');
-    if (!adminData || !token) {
+    if (!adminData || adminData === "undefined" || !token) {
       navigate('/admin/login');
     } else {
       setAdmin(JSON.parse(adminData));

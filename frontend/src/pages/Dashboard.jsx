@@ -5,7 +5,7 @@ import API_BASE_URL from '../config';
 export default function Dashboard() {
   const token = localStorage.getItem('token');
   const userStr = localStorage.getItem('user');
-  const [user, setUser] = useState(userStr ? JSON.parse(userStr) : null);
+  const [user, setUser] = useState(userStr && userStr !== "undefined" ? JSON.parse(userStr) : null);
   
   const username = user ? user.name : 'Unknown';
   const email = user ? user.email : 'unknown@domain.com';

@@ -17,7 +17,7 @@ export default function FtidSubmitOrder() {
   const [orderSuccessMsg, setOrderSuccessMsg] = useState('');
 
   const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const user = userStr && userStr !== "undefined" ? JSON.parse(userStr) : null;
 
   const [dbProducts, setDbProducts] = useState([]);
 

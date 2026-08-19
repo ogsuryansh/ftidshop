@@ -4,7 +4,7 @@ import API_BASE_URL from '../config';
 
 export default function DepositModal({ onClose }) {
   const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const user = userStr && userStr !== "undefined" ? JSON.parse(userStr) : null;
   const token = localStorage.getItem('token');
   
   const [settings, setSettings] = useState({ minDeposit: 20, depositBonusThreshold: 100, depositBonusPercentage: 20 });
