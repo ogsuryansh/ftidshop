@@ -134,7 +134,7 @@ export default function AdminDashboard() {
     if (!adminData || adminData === "undefined" || !token) {
       navigate('/admin/login');
     } else {
-      setAdmin(JSON.parse(adminData));
+      try { setAdmin(JSON.parse(adminData)); } catch { navigate('/admin/login'); }
       fetchData();
     }
   }, [navigate, fetchData]);

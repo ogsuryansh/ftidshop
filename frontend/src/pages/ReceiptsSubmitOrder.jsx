@@ -2,6 +2,11 @@ import React, { useState } from 'react';
 import PaymentModal from '../components/PaymentModal';
 import API_BASE_URL from '../config';
 
+function safeParseUser(raw) {
+  if (!raw || raw === 'undefined' || raw === 'null') return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export default function ReceiptsSubmitOrder() {
   const [category, setCategory] = useState('');
   const [note, setNote] = useState('');
@@ -12,8 +17,7 @@ export default function ReceiptsSubmitOrder() {
   const [paymentMethod, setPaymentMethod] = useState('Crypto');
   const [orderSuccessMsg, setOrderSuccessMsg] = useState('');
 
-  const userStr = localStorage.getItem('user');
-  const user = userStr && userStr !== "undefined" ? JSON.parse(userStr) : null;
+  const user = safeParseUser(localStorage.getItem('user'));
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];

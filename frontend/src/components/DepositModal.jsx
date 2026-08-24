@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import PaymentModal from './PaymentModal';
 import API_BASE_URL from '../config';
 
+function safeParseUser(raw) {
+  if (!raw || raw === 'undefined' || raw === 'null') return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export default function DepositModal({ onClose }) {
-  const userStr = localStorage.getItem('user');
-  const user = userStr && userStr !== "undefined" ? JSON.parse(userStr) : null;
+  const user = safeParseUser(localStorage.getItem('user'));
   const token = localStorage.getItem('token');
   
   const [settings, setSettings] = useState({ minDeposit: 20, depositBonusThreshold: 100, depositBonusPercentage: 20 });

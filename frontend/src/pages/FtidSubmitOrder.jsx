@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import PaymentModal from '../components/PaymentModal';
 import API_BASE_URL from '../config';
 
+function safeParseUser(raw) {
+  if (!raw || raw === 'undefined' || raw === 'null') return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export default function FtidSubmitOrder() {
   const [country, setCountry] = useState('United States US');
   const [courier, setCourier] = useState('UPS');
@@ -16,8 +21,7 @@ export default function FtidSubmitOrder() {
   const [paymentMethod, setPaymentMethod] = useState('Crypto');
   const [orderSuccessMsg, setOrderSuccessMsg] = useState('');
 
-  const userStr = localStorage.getItem('user');
-  const user = userStr && userStr !== "undefined" ? JSON.parse(userStr) : null;
+  const user = safeParseUser(localStorage.getItem('user'));
 
   const [dbProducts, setDbProducts] = useState([]);
 
