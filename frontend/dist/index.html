@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FTID.SHOP</title>
+    
+    <link rel="icon" type="image/png" href="/assets/images/favicon2.png" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="/assets/css/normalize.min.css">
+    <link rel="stylesheet" href="/assets/css/global.min.css?v=2">
+    <link rel="stylesheet" href="/assets/css/index.min.css?v=2">
+    <link rel="stylesheet" href="/assets/css/responsive.min.css">
+    
+    <style>
+        .sticky_buttons {
+            position: fixed;
+            width: 64px;
+            right: 10px;
+            bottom: 100px;
+            z-index: 100;
+        }
+        .sticky_buttons>a {
+            margin-top: 10px;
+            display: inline-block;
+        }
+        .sticky_buttons img {
+            width: 60px;
+            height: 60px;
+            border-radius: 100%;
+        }
+
+        /* Responsive Overrides */
+        @media (max-width: 768px) {
+            header .flex_container {
+                flex-direction: column !important;
+                align-items: center !important;
+                text-align: center !important;
+                gap: 15px;
+            }
+            .welcomeblock { 
+                display: flex !important; 
+                justify-content: center !important; 
+                width: 100% !important; 
+                gap: 10px;
+            }
+            .welcomeblock .button { margin: 0 !important; }
+            .hero .flex_container { flex-direction: column !important; text-align: center !important; }
+            [data-width="50%"] { width: 100% !important; margin-bottom: 20px; }
+            .hero_image { max-width: 100%; height: auto; }
+            .flex_rows_3, .flex_rows_4 { 
+                width: 100% !important; 
+                flex: 0 0 100% !important; 
+                margin-left: 0 !important; 
+                margin-right: 0 !important; 
+                margin-bottom: 20px !important;
+            }
+            .sticky_buttons { bottom: 20px !important; right: 10px !important; }
+            .sticky_buttons img { width: 45px !important; height: 45px !important; }
+            .navigation { display: none !important; }
+            .text_4xlarge { font-size: 2rem !important; }
+            .text_2xlarge { font-size: 1.5rem !important; }
+            .pt_12, .pb_12 { padding-top: 3rem !important; padding-bottom: 3rem !important; }
+        }
+    </style>
+    <script type="module" crossorigin src="/assets/index-lDeoGPSv.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CGxfJSmB.css">
+  </head>
+  <body class="body_index bg_primary color_primary transition-fade" data-router-wrapper>
+    <div id="root"></div>
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script src="/assets/js/general.min.js"></script>
+    <script src="/assets/js/wave/three.min.js"></script>
+    <script src="/assets/js/wave/Projector.js"></script>
+    <script src="/assets/js/wave/CanvasRender.js"></script>
+    <script src="/assets/js/wave/index.js?v=2"></script>
+    <script src="/assets/js/bubbly-bg.js?v=2"></script>
+  </body>
+</html>
