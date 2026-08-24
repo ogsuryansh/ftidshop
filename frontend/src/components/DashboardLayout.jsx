@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import DepositModal from './DepositModal';
 
+// Safe JSON parser — prevents crash when localStorage has "undefined" as a string
+function safeParseUser(raw) {
+  if (!raw || raw === 'undefined' || raw === 'null') return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export default function DashboardLayout() {
-  const [user, setUser] = useState(() => {
-    const userStr = localStorage.getItem('user');
-    return userStr && userStr !== "undefined" ? JSON.parse(userStr) : null;
-  });
+  const [user, setUser] = useState(() => safeParseUser(localStorage.getItem('user')));
   const username = user ? user.name : 'Unknown';
   const credits = user ? user.credits : 0;
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -14,8 +17,7 @@ export default function DashboardLayout() {
 
   useEffect(() => {
     const handleUserUpdated = () => {
-      const userStr = localStorage.getItem('user');
-      setUser(userStr && userStr !== "undefined" ? JSON.parse(userStr) : null);
+      setUser(safeParseUser(localStorage.getItem('user')));
     };
     window.addEventListener('user-updated', handleUserUpdated);
     return () => window.removeEventListener('user-updated', handleUserUpdated);

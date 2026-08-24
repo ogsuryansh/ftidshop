@@ -2,10 +2,15 @@ import React, { useState, useEffect } from 'react';
 import PaymentModal from '../components/PaymentModal';
 import API_BASE_URL from '../config';
 
+// Safe JSON parser — prevents crash when localStorage has "undefined" as a string
+function safeParseUser(raw) {
+  if (!raw || raw === 'undefined' || raw === 'null') return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export default function Dashboard() {
   const token = localStorage.getItem('token');
-  const userStr = localStorage.getItem('user');
-  const [user, setUser] = useState(userStr && userStr !== "undefined" ? JSON.parse(userStr) : null);
+  const [user, setUser] = useState(() => safeParseUser(localStorage.getItem('user')));
   
   const username = user ? user.name : 'Unknown';
   const email = user ? user.email : 'unknown@domain.com';
