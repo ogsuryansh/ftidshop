@@ -30,7 +30,7 @@ export default function AdminLogin() {
         } else if (data.token) {
           // Fallback if 2FA wasn't required (not expected with current backend logic, but safe)
           localStorage.setItem('admin_token', data.token);
-          localStorage.setItem('admin', JSON.stringify(data.admin));
+          localStorage.setItem('admin', JSON.stringify(data.admin || {}));
           navigate('/admin/dashboard');
         }
       } else {
@@ -56,7 +56,7 @@ export default function AdminLogin() {
 
       if (res.ok) {
         localStorage.setItem('admin_token', data.token);
-        localStorage.setItem('admin', JSON.stringify(data.admin));
+        localStorage.setItem('admin', JSON.stringify(data.admin || {}));
         navigate('/admin/dashboard');
       } else {
         alert(data.error || 'Invalid OTP');

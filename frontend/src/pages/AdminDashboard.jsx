@@ -133,10 +133,15 @@ export default function AdminDashboard() {
     const token = localStorage.getItem('admin_token');
     if (!adminData || adminData === "undefined" || !token) {
       navigate('/admin/login');
-    } else {
-      try { setAdmin(JSON.parse(adminData)); } catch { navigate('/admin/login'); }
-      fetchData();
+      return;
     }
+    try { 
+      setAdmin(JSON.parse(adminData)); 
+    } catch { 
+      navigate('/admin/login'); 
+      return;
+    }
+    fetchData();
   }, [navigate, fetchData]);
 
   const handleSaveProduct = async (e) => {
