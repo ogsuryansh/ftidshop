@@ -2,6 +2,12 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
 
+// Safe JSON parser — prevents SyntaxError crash when localStorage has "undefined" or corrupted data
+function safeParseAdmin(raw) {
+  if (!raw || raw === 'undefined' || raw === 'null') return null;
+  try { return JSON.parse(raw); } catch { return null; }
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState(null);
@@ -135,12 +141,15 @@ export default function AdminDashboard() {
       navigate('/admin/login');
       return;
     }
-    try { 
-      setAdmin(JSON.parse(adminData)); 
-    } catch { 
-      navigate('/admin/login'); 
+    const parsed = safeParseAdmin(adminData);
+    if (!parsed) {
+      // Corrupted data — clear it and redirect to login
+      localStorage.removeItem('admin');
+      localStorage.removeItem('admin_token');
+      navigate('/admin/login');
       return;
     }
+    setAdmin(parsed);
     fetchData();
   }, [navigate, fetchData]);
 
