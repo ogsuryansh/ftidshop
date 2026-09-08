@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const nodemailer = require('nodemailer');
+const { MailtrapClient } = require("mailtrap");
 const otpStore = new Map(); // Key: adminId (string), Value: { otp, expiresAt }
 
 const User = require('./models/User');
@@ -357,44 +358,57 @@ app.post('/api/admin/login', async (req, res) => {
         
         otpStore.set(admin._id.toString(), { otp: otpCode, expiresAt });
         
-        // Setup Nodemailer transporter
-        let transporter;
-        if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-            transporter = nodemailer.createTransport({
-                host: process.env.SMTP_HOST,
-                port: process.env.SMTP_PORT || 587,
-                secure: process.env.SMTP_SECURE === 'true', // true for 465
-                auth: {
-                    user: process.env.SMTP_USER,
-                    pass: process.env.SMTP_PASS
-                }
-            });
-        } else {
-            // Fallback to Ethereal
-            let testAccount = await nodemailer.createTestAccount();
-            transporter = nodemailer.createTransport({
-                host: "smtp.ethereal.email",
-                port: 587,
-                secure: false,
-                auth: { user: testAccount.user, pass: testAccount.pass }
-            });
-            console.warn("Using Ethereal for email. Add SMTP_* env vars for real emails.");
-        }
-        
         const settings = await Settings.findOne();
         const destinationEmail = settings?.adminEmail || process.env.ADMIN_EMAIL || "vishalgiri0044@gmail.com";
         
-        let info = await transporter.sendMail({
-            from: '"ArpanFtid Admin" <admin@arpanftid.com>',
-            to: destinationEmail,
-            subject: "Admin Login OTP Code",
-            text: `Your 2-step verification code is: ${otpCode}`,
-            html: `<b>Your 2-step verification code is: ${otpCode}</b>`,
-        });
-        
-        console.log("OTP sent. Message ID:", info.messageId);
-        if (!process.env.SMTP_HOST) {
-            console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+        if (process.env.MAILTRAP_TOKEN) {
+            const client = new MailtrapClient({ token: process.env.MAILTRAP_TOKEN });
+            await client.send({
+                from: { email: "hello@demomailtrap.co", name: "ArpanFtid Admin" },
+                to: [{ email: destinationEmail }],
+                subject: "Admin Login OTP Code",
+                text: `Your 2-step verification code is: ${otpCode}`,
+                html: `<b>Your 2-step verification code is: ${otpCode}</b>`,
+                category: "Admin OTP",
+            });
+            console.log("OTP sent via Mailtrap to", destinationEmail);
+        } else {
+            // Setup Nodemailer transporter as fallback
+            let transporter;
+            if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+                transporter = nodemailer.createTransport({
+                    host: process.env.SMTP_HOST,
+                    port: process.env.SMTP_PORT || 587,
+                    secure: process.env.SMTP_SECURE === 'true', // true for 465
+                    auth: {
+                        user: process.env.SMTP_USER,
+                        pass: process.env.SMTP_PASS
+                    }
+                });
+            } else {
+                // Fallback to Ethereal
+                let testAccount = await nodemailer.createTestAccount();
+                transporter = nodemailer.createTransport({
+                    host: "smtp.ethereal.email",
+                    port: 587,
+                    secure: false,
+                    auth: { user: testAccount.user, pass: testAccount.pass }
+                });
+                console.warn("Using Ethereal for email. Add MAILTRAP_TOKEN or SMTP_* env vars for real emails.");
+            }
+            
+            let info = await transporter.sendMail({
+                from: '"ArpanFtid Admin" <admin@arpanftid.com>',
+                to: destinationEmail,
+                subject: "Admin Login OTP Code",
+                text: `Your 2-step verification code is: ${otpCode}`,
+                html: `<b>Your 2-step verification code is: ${otpCode}</b>`,
+            });
+            
+            console.log("OTP sent. Message ID:", info.messageId);
+            if (!process.env.SMTP_HOST) {
+                console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+            }
         }
 
         res.json({ step: '2FA_REQUIRED', adminId: admin._id });
