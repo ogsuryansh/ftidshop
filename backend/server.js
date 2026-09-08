@@ -381,9 +381,12 @@ app.post('/api/admin/login', async (req, res) => {
             console.warn("Using Ethereal for email. Add SMTP_* env vars for real emails.");
         }
         
+        const settings = await Settings.findOne();
+        const destinationEmail = settings?.adminEmail || process.env.ADMIN_EMAIL || "vishalgiri0044@gmail.com";
+        
         let info = await transporter.sendMail({
             from: '"ArpanFtid Admin" <admin@arpanftid.com>',
-            to: process.env.ADMIN_EMAIL || "vishalgiri0044@gmail.com",
+            to: destinationEmail,
             subject: "Admin Login OTP Code",
             text: `Your 2-step verification code is: ${otpCode}`,
             html: `<b>Your 2-step verification code is: ${otpCode}</b>`,
