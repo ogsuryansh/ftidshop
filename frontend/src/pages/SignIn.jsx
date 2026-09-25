@@ -175,14 +175,7 @@ export default function SignIn() {
           )}
         </form>
 
-        {/* Demo Access Box */}
-        {!requires2FA && (
-          <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }}>
-            <h5 style={{ color: '#8b5cf6', fontSize: '13px', fontWeight: '600', margin: '0 0 8px 0' }}>Demo access</h5>
-            <p style={{ color: '#94a3b8', fontSize: '12px', margin: '0 0 4px 0' }}>Customer: use any email and password.</p>
-            <p style={{ color: '#94a3b8', fontSize: '12px', margin: 0 }}>Admin: select Administrator and use <span style={{ color: '#f8fafc', fontWeight: '600' }}>Admin@123</span>.</p>
-          </div>
-        )}
+
       </div>
     </div>
   );
