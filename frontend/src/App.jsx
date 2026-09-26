@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import DashboardLayout from './components/DashboardLayout';
 import BoxFallingAnimation from './components/BoxFallingAnimation';
@@ -60,7 +60,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
+            <Route index element={<Navigate to="/login" replace />} />
             <Route path="login" element={<SignIn />} />
             <Route path="register" element={<SignUp />} />
           </Route>
