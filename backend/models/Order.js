@@ -8,11 +8,7 @@ const orderSchema = new mongoose.Schema({
     method: { type: String },
     trackingNumber: { type: String },
     note: { type: String },
-    fileData: {
-        filename: { type: String },
-        data: { type: String }, // Base64 encoded file string
-        mimeType: { type: String }
-    },
+    fileData: mongoose.Schema.Types.Mixed, // Can be object (old orders) or array of objects (new bulk orders)
     price: { type: Number, default: 0 },
     paymentStatus: { type: String, default: 'Pending Payment', enum: ['Pending Payment', 'Paid', 'Failed'] },
     status: { type: String, default: 'Pending Payment', enum: ['Pending Payment', 'Pending', 'Processing', 'Completed', 'Cancelled'] },

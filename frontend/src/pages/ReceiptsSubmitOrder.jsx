@@ -19,21 +19,23 @@ export default function ReceiptsSubmitOrder() {
 
   const user = safeParseUser(localStorage.getItem('user'));
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-      setFileData(null);
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFileData({
-        filename: file.name,
-        data: reader.result,
-        mimeType: file.type
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const newFiles = await Promise.all(files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          filename: file.name,
+          data: reader.result,
+          mimeType: file.type
+        });
+        reader.readAsDataURL(file);
       });
-    };
-    reader.readAsDataURL(file);
+    }));
+
+    setFileData(prev => prev && prev.length ? [...prev, ...newFiles] : [...newFiles]);
   };
 
   const handleSubmit = async (e) => {
@@ -54,7 +56,10 @@ export default function ReceiptsSubmitOrder() {
       'Germany Receipts': 20
     };
 
-    const price = categoryPrices[category] || 15;
+    const basePrice = categoryPrices[category] || 15;
+    const fileCount = fileData ? fileData.length : 0;
+    const quantity = Math.max(fileCount, 1);
+    const price = basePrice * quantity;
     setSubmitting(true);
     setLoadingTransition(true);
 
@@ -106,6 +111,17 @@ export default function ReceiptsSubmitOrder() {
     }
   };
 
+  const renderCategoryPrices = {
+    'United States Receipt': 15,
+    'Canada Receipt': 15,
+    'Italy Receipts': 20,
+    'Germany Receipts': 20
+  };
+  const currentBasePrice = renderCategoryPrices[category] || 15;
+  const currentFileCount = fileData ? fileData.length : 0;
+  const currentQuantity = Math.max(currentFileCount, 1);
+  const currentTotalPrice = category ? currentBasePrice * currentQuantity : 0;
+
   return (
     <div style={{ padding: '20px 0', maxWidth: '1000px', width: '100%', boxSizing: 'border-box' }}>
       <h2 style={{ fontSize: '20px', marginBottom: '20px', color: '#fff', fontWeight: '500' }}>New receipt order</h2>
@@ -142,24 +158,40 @@ export default function ReceiptsSubmitOrder() {
             <input 
               id="receipt_file_input" 
               type="file" 
+              multiple
               onChange={handleFileChange} 
               style={{ display: 'none' }} 
             />
-            {fileData ? (
-              <div className="file_selected_box">
-                <i className='bx bx-file-find' style={{ fontSize: '28px', color: '#00f2fe' }}></i>
-                <div>
-                  <div style={{ color: '#00f2fe', fontWeight: '600', fontSize: '14px' }}>{fileData.filename}</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>File attached successfully</div>
+            {fileData && fileData.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+                {fileData.map((file, idx) => (
+                  <div key={idx} className="file_selected_box" style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(0,242,254,0.05)', border: '1px solid rgba(0,242,254,0.2)', borderRadius: '8px', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <i className='bx bx-file-find' style={{ fontSize: '24px', color: '#00f2fe' }}></i>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ color: '#00f2fe', fontWeight: '600', fontSize: '13px', wordBreak: 'break-all' }}>{file.filename}</div>
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setFileData(prev => {
+                          const newArr = prev.filter((_, i) => i !== idx);
+                          return newArr.length ? newArr : null;
+                        }); 
+                      }}
+                      className="btn_remove_file"
+                      title="Remove file"
+                      style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '18px' }}
+                    >
+                      <i className='bx bx-trash'></i>
+                    </button>
+                  </div>
+                ))}
+                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                  <span style={{ color: '#00f2fe', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline', fontWeight: '500' }}>+ Click to add more files</span>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={(e) => { e.stopPropagation(); setFileData(null); }}
-                  className="btn_remove_file"
-                  title="Remove file"
-                >
-                  <i className='bx bx-x'></i>
-                </button>
               </div>
             ) : (
               <div className="dropzone_placeholder">
@@ -194,19 +226,19 @@ export default function ReceiptsSubmitOrder() {
                 value="Wallet Balance" 
                 checked={paymentMethod === 'Wallet Balance'} 
                 onChange={e => setPaymentMethod(e.target.value)} 
-                disabled={!user || user.credits < (category === 'United States Receipt' || category === 'Canada Receipt' ? 15 : 20)}
+                disabled={!user || user.credits < currentTotalPrice || !category}
               />
               Wallet Balance (${user ? user.credits : 0} available)
             </label>
           </div>
-          {paymentMethod === 'Wallet Balance' && user && user.credits < (category === 'United States Receipt' || category === 'Canada Receipt' ? 15 : 20) && (
+          {paymentMethod === 'Wallet Balance' && user && user.credits < currentTotalPrice && category && (
             <div style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '5px' }}>Insufficient balance. Please deposit funds first.</div>
           )}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <button type="submit" disabled={submitting || (paymentMethod === 'Wallet Balance' && user.credits < (category === 'United States Receipt' || category === 'Canada Receipt' ? 15 : 20))} style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: (submitting || (paymentMethod === 'Wallet Balance' && user.credits < (category === 'United States Receipt' || category === 'Canada Receipt' ? 15 : 20))) ? 0.7 : 1 }}>
-            {submitting ? 'Submitting...' : 'Create Order & Pay'}
+          <button type="submit" disabled={submitting || !category || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)} style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: (submitting || !category || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)) ? 0.7 : 1 }}>
+            {submitting ? 'Submitting...' : (category ? `Create Order & Pay ($${currentTotalPrice})` : 'Create Order & Pay')}
           </button>
         </div>
       </form>

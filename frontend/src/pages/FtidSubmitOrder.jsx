@@ -129,21 +129,23 @@ export default function FtidSubmitOrder() {
     }
   }, [courier, availableMethods]);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-      setFileData(null);
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFileData({
-        filename: file.name,
-        data: reader.result,
-        mimeType: file.type
+  const handleFileChange = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const newFiles = await Promise.all(files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({
+          filename: file.name,
+          data: reader.result,
+          mimeType: file.type
+        });
+        reader.readAsDataURL(file);
       });
-    };
-    reader.readAsDataURL(file);
+    }));
+
+    setFileData(prev => prev && prev.length ? [...prev, ...newFiles] : [...newFiles]);
   };
 
   const handleSubmit = async (e) => {
@@ -155,7 +157,10 @@ export default function FtidSubmitOrder() {
     }
 
     const selectedMethodObj = currentConfig.methods.find(m => m.name === method);
-    const price = selectedMethodObj ? selectedMethodObj.price : 30;
+    const trackingCount = trackingNumber.split('\n').filter(t => t.trim()).length;
+    const fileCount = fileData ? fileData.length : 0;
+    const quantity = Math.max(trackingCount, fileCount, 1);
+    const price = (selectedMethodObj ? selectedMethodObj.price : 30) * quantity;
 
     setSubmitting(true);
     setLoadingTransition(true);
@@ -210,6 +215,12 @@ export default function FtidSubmitOrder() {
       alert("Error submitting order.");
     }
   };
+
+  const selectedMethodObjForRender = currentConfig.methods.find(m => m.name === method);
+  const currentTrackingCount = trackingNumber.split('\n').filter(t => t.trim()).length;
+  const currentFileCount = fileData ? fileData.length : 0;
+  const currentQuantity = Math.max(currentTrackingCount, currentFileCount, 1);
+  const currentTotalPrice = (selectedMethodObjForRender ? selectedMethodObjForRender.price : 30) * currentQuantity;
 
   return (
     <div style={{ padding: '20px 0', maxWidth: '1000px', width: '100%', boxSizing: 'border-box' }}>
@@ -292,8 +303,8 @@ export default function FtidSubmitOrder() {
 
         {/* Tracking Number */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Tracking number</label>
-          <input type="text" value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} required placeholder="Your package tracking number" style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', boxSizing: 'border-box', outline: 'none' }} />
+          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Tracking number (One per line for bulk orders)</label>
+          <textarea value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} required placeholder="Your package tracking numbers" rows="3" style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}></textarea>
         </div>
 
         {/* Note */}
@@ -314,24 +325,40 @@ export default function FtidSubmitOrder() {
             <input 
               id="ftid_file_input" 
               type="file" 
+              multiple
               onChange={handleFileChange} 
               style={{ display: 'none' }} 
             />
-            {fileData ? (
-              <div className="file_selected_box">
-                <i className='bx bx-file-find' style={{ fontSize: '28px', color: '#00f2fe' }}></i>
-                <div>
-                  <div style={{ color: '#00f2fe', fontWeight: '600', fontSize: '14px' }}>{fileData.filename}</div>
-                  <div style={{ color: '#888', fontSize: '12px' }}>File attached successfully</div>
+            {fileData && fileData.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', boxSizing: 'border-box' }}>
+                {fileData.map((file, idx) => (
+                  <div key={idx} className="file_selected_box" style={{ padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(0,242,254,0.05)', border: '1px solid rgba(0,242,254,0.2)', borderRadius: '8px', width: '100%', boxSizing: 'border-box' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <i className='bx bx-file-find' style={{ fontSize: '24px', color: '#00f2fe' }}></i>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ color: '#00f2fe', fontWeight: '600', fontSize: '13px', wordBreak: 'break-all' }}>{file.filename}</div>
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setFileData(prev => {
+                          const newArr = prev.filter((_, i) => i !== idx);
+                          return newArr.length ? newArr : null;
+                        }); 
+                      }}
+                      className="btn_remove_file"
+                      title="Remove file"
+                      style={{ background: 'transparent', border: 'none', color: '#ff4d4d', cursor: 'pointer', fontSize: '18px' }}
+                    >
+                      <i className='bx bx-trash'></i>
+                    </button>
+                  </div>
+                ))}
+                <div style={{ textAlign: 'center', marginTop: '10px' }}>
+                  <span style={{ color: '#00f2fe', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline', fontWeight: '500' }}>+ Click to add more files</span>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={(e) => { e.stopPropagation(); setFileData(null); }}
-                  className="btn_remove_file"
-                  title="Remove file"
-                >
-                  <i className='bx bx-x'></i>
-                </button>
               </div>
             ) : (
               <div className="dropzone_placeholder">
@@ -366,19 +393,19 @@ export default function FtidSubmitOrder() {
                 value="Wallet Balance" 
                 checked={paymentMethod === 'Wallet Balance'} 
                 onChange={e => setPaymentMethod(e.target.value)} 
-                disabled={!user || user.credits < (currentConfig.methods.find(m => m.name === method)?.price || 0)}
+                disabled={!user || user.credits < currentTotalPrice}
               />
               Wallet Balance (${user ? user.credits : 0} available)
             </label>
           </div>
-          {paymentMethod === 'Wallet Balance' && user && user.credits < (currentConfig.methods.find(m => m.name === method)?.price || 0) && (
+          {paymentMethod === 'Wallet Balance' && user && user.credits < currentTotalPrice && (
             <div style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '5px' }}>Insufficient balance. Please deposit funds first.</div>
           )}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <button type="submit" disabled={submitting || (paymentMethod === 'Wallet Balance' && user.credits < (currentConfig.methods.find(m => m.name === method)?.price || 0))} style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: (submitting || (paymentMethod === 'Wallet Balance' && user.credits < (currentConfig.methods.find(m => m.name === method)?.price || 0))) ? 0.7 : 1 }}>
-            {submitting ? 'Submitting...' : 'Create Order & Pay'}
+          <button type="submit" disabled={submitting || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)} style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: (submitting || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)) ? 0.7 : 1 }}>
+            {submitting ? 'Submitting...' : `Create Order & Pay ($${currentTotalPrice})`}
           </button>
         </div>
       </form>
