@@ -131,7 +131,7 @@ export default function SignIn() {
                   <input type="checkbox" style={{ marginRight: '8px', width: '16px', height: '16px', accentColor: '#8b5cf6', cursor: 'pointer' }} />
                   <span style={{ color: '#94a3b8', fontSize: '13px' }}>Remember me</span>
                 </label>
-                <a href="#" style={{ color: '#8b5cf6', fontSize: '13px', textDecoration: 'none', fontWeight: '500' }}>Forgot password?</a>
+                <Link to="/forgot-password" style={{ color: '#8b5cf6', fontSize: '13px', textDecoration: 'none', fontWeight: '500' }}>Forgot password?</Link>
               </div>
               
               {/* Submit Button */}

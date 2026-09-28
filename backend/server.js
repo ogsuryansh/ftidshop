@@ -185,6 +185,69 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: 'User with this email does not exist.' });
+        }
+
+        const resetToken = uuidv4();
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+        await user.save();
+
+        const transporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: process.env.SMTP_PORT || 587,
+            secure: false,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS,
+            },
+        });
+
+        const resetUrl = `${req.headers.origin}/reset-password?token=${resetToken}`;
+        const mailOptions = {
+            from: `"FTID.SHOP" <${process.env.SMTP_USER}>`,
+            to: user.email,
+            subject: 'Password Reset Request',
+            text: `You requested a password reset. Please click the link below to reset your password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`,
+        };
+
+        await transporter.sendMail(mailOptions);
+        res.json({ message: 'Password reset link sent to your email.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error. Could not send email.' });
+    }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+        const user = await User.findOne({ 
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ error: 'Password reset token is invalid or has expired.' });
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        res.json({ message: 'Password has been successfully reset. You can now login.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error.' });
+    }
+});
+
 // User Authentication Middleware
 const authUser = (req, res, next) => {
     const authHeader = req.headers.authorization;

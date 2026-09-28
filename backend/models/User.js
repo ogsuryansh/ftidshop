@@ -7,7 +7,9 @@ const userSchema = new mongoose.Schema({
     credits: { type: Number, default: 0 },
     twoFactorEnabled: { type: Boolean, default: false },
     twoFactorSecret: { type: String, default: null },
-    tempTwoFactorSecret: { type: String, default: null }
+    tempTwoFactorSecret: { type: String, default: null },
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

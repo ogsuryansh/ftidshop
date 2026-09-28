@@ -11,6 +11,8 @@ import FtidSubmitOrder from './pages/FtidSubmitOrder';
 import FtidMyOrders from './pages/FtidMyOrders';
 import ReceiptsSubmitOrder from './pages/ReceiptsSubmitOrder';
 import ReceiptsMyOrders from './pages/ReceiptsMyOrders';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import './App.css';
@@ -63,6 +65,8 @@ function App() {
             <Route index element={<Navigate to="/login" replace />} />
             <Route path="login" element={<SignIn />} />
             <Route path="register" element={<SignUp />} />
+            <Route path="forgot-password" element={<ForgotPassword />} />
+            <Route path="reset-password" element={<ResetPassword />} />
           </Route>
           
           {/* Dashboard Route */}
