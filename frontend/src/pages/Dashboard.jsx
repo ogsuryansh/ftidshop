@@ -41,6 +41,7 @@ export default function Dashboard() {
       .then(res => res.json())
       .then(data => {
         if (data && data._id) {
+          data.id = data._id; // Ensure id is present for older components
           setUser(data);
           localStorage.setItem('user', JSON.stringify(data));
         }
