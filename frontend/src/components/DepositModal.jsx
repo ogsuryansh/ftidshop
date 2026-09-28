@@ -43,7 +43,7 @@ export default function DepositModal({ onClose }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user.id || user._id,
           type: 'deposit',
           name: 'Wallet Deposit',
           price: amount,
