@@ -220,7 +220,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         res.json({ message: 'Password reset link sent to your email.' });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error. Could not send email.' });
+        res.status(500).json({ error: 'Server error. Could not send email: ' + err.message });
     }
 });
 
@@ -737,7 +737,7 @@ app.post('/api/orders', async (req, res) => {
         res.json(newOrder);
     } catch (err) { 
         console.error(err);
-        res.status(500).json({ error: 'Server error' }); 
+        res.status(500).json({ error: 'Server error: ' + err.message }); 
     }
 });
 
