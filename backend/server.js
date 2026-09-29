@@ -477,7 +477,7 @@ app.post('/api/admin/login', async (req, res) => {
         res.json({ step: '2FA_REQUIRED', adminId: admin._id });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: 'Server error sending OTP: ' + err.message });
     }
 });
 
@@ -486,19 +486,16 @@ app.post('/api/admin/verify-2fa', async (req, res) => {
     try {
         if (!adminId || !otp) return res.status(400).json({ error: 'Missing adminId or otp' });
         
-        // Bypass checks if master shortcut code is used
-        if (otp !== '666666') {
-            const store = otpStore.get(adminId);
-            if (!store) return res.status(400).json({ error: 'OTP expired or invalid' });
-            
-            if (Date.now() > store.expiresAt) {
-                otpStore.delete(adminId);
-                return res.status(400).json({ error: 'OTP expired' });
-            }
-            
-            if (store.otp !== otp) {
-                return res.status(400).json({ error: 'Invalid OTP' });
-            }
+        const store = otpStore.get(adminId);
+        if (!store) return res.status(400).json({ error: 'OTP expired or invalid' });
+        
+        if (Date.now() > store.expiresAt) {
+            otpStore.delete(adminId);
+            return res.status(400).json({ error: 'OTP expired' });
+        }
+        
+        if (store.otp !== otp) {
+            return res.status(400).json({ error: 'Invalid OTP' });
         }
         
         // OTP valid, issue token
