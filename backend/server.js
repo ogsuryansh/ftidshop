@@ -436,29 +436,19 @@ app.post('/api/admin/login', async (req, res) => {
             });
             console.log("OTP sent via Mailtrap to", destinationEmail);
         } else {
-            // Setup Nodemailer transporter as fallback
-            let transporter;
-            if (process.env.SMTP_USER) {
-                transporter = nodemailer.createTransport({
-                    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-                    port: process.env.SMTP_PORT || 587,
-                    secure: false,
-                    auth: {
-                        user: process.env.SMTP_USER,
-                        pass: process.env.SMTP_PASS
-                    }
-                });
-            } else {
-                // Fallback to Ethereal
-                let testAccount = await nodemailer.createTestAccount();
-                transporter = nodemailer.createTransport({
-                    host: "smtp.ethereal.email",
-                    port: 587,
-                    secure: false,
-                    auth: { user: testAccount.user, pass: testAccount.pass }
-                });
-                console.warn("Using Ethereal for email. Add MAILTRAP_TOKEN or SMTP_* env vars for real emails.");
+            if (!process.env.SMTP_USER) {
+                throw new Error("SMTP_USER environment variable is missing on Vercel!");
             }
+            
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || 'smtp.gmail.com',
+                port: process.env.SMTP_PORT || 587,
+                secure: false,
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS
+                }
+            });
             
             let info = await transporter.sendMail({
                 from: '"ArpanFtid Admin" <admin@arpanftid.com>',
