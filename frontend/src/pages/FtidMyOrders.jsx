@@ -91,7 +91,20 @@ export default function FtidMyOrders() {
                         Pay Now
                       </button>
                     )}
-                    {order.fileData && order.fileData.data && (
+                    {Array.isArray(order.fileData) && order.fileData.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {order.fileData.map((file, fidx) => (
+                          <a 
+                            key={fidx}
+                            href={file.data} 
+                            download={file.filename || `file_${fidx}`} 
+                            style={{ backgroundColor: '#007bff', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            File 📎
+                          </a>
+                        ))}
+                      </div>
+                    ) : (order.fileData && order.fileData.data) && (
                       <a 
                         href={order.fileData.data} 
                         download={order.fileData.filename || 'file'} 

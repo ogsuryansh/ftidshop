@@ -526,7 +526,20 @@ export default function AdminDashboard() {
                         {o.txHash && <div style={{ fontSize: '10px', color: '#00f2fe', fontFamily: 'monospace' }}>TX: {o.txHash.slice(0, 10)}...</div>}
                       </td>
                       <td className="p_2">
-                        {o.fileData && o.fileData.data ? (
+                        {Array.isArray(o.fileData) && o.fileData.length > 0 ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {o.fileData.map((file, idx) => (
+                              <a 
+                                key={idx}
+                                href={file.data} 
+                                download={file.filename || `user_attachment_${idx}`}
+                                style={{ backgroundColor: '#007bff', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                📎 {file.filename ? (file.filename.length > 15 ? file.filename.slice(0, 12) + '...' : file.filename) : 'File'}
+                              </a>
+                            ))}
+                          </div>
+                        ) : (o.fileData && o.fileData.data) ? (
                           <a 
                             href={o.fileData.data} 
                             download={o.fileData.filename || 'user_attachment'}
