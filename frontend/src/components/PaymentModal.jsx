@@ -35,7 +35,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   const handleCryptoSelect = async (currency) => {
     setSelectedCrypto(currency);
     if (order._id) {
-      fetch(`${API_BASE}/api/admin/order/${order._id}/status`, {
+      fetch(`${API_BASE}/api/orders/${order._id}/currency`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paymentCurrency: currency })

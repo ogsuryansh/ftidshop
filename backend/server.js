@@ -728,6 +728,23 @@ app.post('/api/orders', async (req, res) => {
     }
 });
 
+app.put('/api/orders/:orderId/currency', async (req, res) => {
+    try {
+        const { paymentCurrency } = req.body;
+        const address = WALLET_ADDRESSES[paymentCurrency];
+        if (!address) return res.status(400).json({ error: 'Unsupported currency' });
+        
+        const updated = await Order.findByIdAndUpdate(
+            req.params.orderId,
+            { paymentCurrency, paymentAddress: address },
+            { new: true }
+        );
+        res.json(updated);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.get('/api/orders/:userId', async (req, res) => {
     try {
         const orders = await Order.find({ userId: req.params.userId }).sort({ createdAt: -1 });
