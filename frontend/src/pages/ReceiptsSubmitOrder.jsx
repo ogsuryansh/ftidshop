@@ -68,7 +68,7 @@ export default function ReceiptsSubmitOrder() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
+          userId: user._id || user.id,
           type: 'Receipt',
           country: category,
           method: category,
