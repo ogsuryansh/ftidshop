@@ -451,7 +451,7 @@ app.post('/api/admin/login', async (req, res) => {
             });
             
             let info = await transporter.sendMail({
-                from: '"ArpanFtid Admin" <admin@arpanftid.com>',
+                from: `"ArpanFtid Admin" <${process.env.SMTP_USER}>`,
                 to: destinationEmail,
                 subject: "Admin Login OTP Code",
                 text: `Your 2-step verification code is: ${otpCode}`,
