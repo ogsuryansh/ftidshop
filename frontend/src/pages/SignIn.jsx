@@ -10,10 +10,13 @@ export default function SignIn() {
   const [requires2FA, setRequires2FA] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [loginAs, setLoginAs] = useState('Customer');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (isLoading) return;
     setErrorMsg('');
+    setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
@@ -34,6 +37,8 @@ export default function SignIn() {
       }
     } catch (err) {
       setErrorMsg('Login failed. Ensure backend server is running.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -135,8 +140,16 @@ export default function SignIn() {
               </div>
               
               {/* Submit Button */}
-              <button type="submit" style={{ width: '100%', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#7c3aed'} onMouseOut={e => e.currentTarget.style.backgroundColor = '#8b5cf6'}>
-                Login to Portal <span>&rarr;</span>
+              <button 
+                type="submit" 
+                disabled={isLoading}
+                style={{ width: '100%', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', transition: 'background-color 0.2s' }} 
+                onMouseOver={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#7c3aed'; }} 
+                onMouseOut={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#8b5cf6'; }}
+              >
+                {isLoading ? 'Processing...' : (
+                  <>Login to Portal <span>&rarr;</span></>
+                )}
               </button>
             </>
           ) : (
@@ -160,8 +173,14 @@ export default function SignIn() {
                 />
               </div>
 
-              <button type="submit" style={{ width: '100%', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#7c3aed'} onMouseOut={e => e.currentTarget.style.backgroundColor = '#8b5cf6'}>
-                Verify & Login
+              <button 
+                type="submit" 
+                disabled={isLoading}
+                style={{ width: '100%', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1, transition: 'background-color 0.2s' }} 
+                onMouseOver={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#7c3aed'; }} 
+                onMouseOut={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#8b5cf6'; }}
+              >
+                {isLoading ? 'Processing...' : 'Verify & Login'}
               </button>
 
               <button 

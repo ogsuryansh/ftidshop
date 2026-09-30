@@ -73,9 +73,11 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (isLoading) return;
     setErrorMsg('');
     if (password !== confirmPassword) {
       setErrorMsg("Passwords do not match");
@@ -86,6 +88,7 @@ export default function SignUp() {
       return;
     }
     
+    setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/register`, {
           method: 'POST',
@@ -104,6 +107,8 @@ export default function SignUp() {
       }
     } catch (err) {
       setErrorMsg('Network error occurred.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -205,8 +210,14 @@ export default function SignUp() {
           </div>
           
           {/* Submit Button */}
-          <button type="submit" style={{ width: '100%', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'background-color 0.2s' }} onMouseOver={e => e.currentTarget.style.backgroundColor = '#7c3aed'} onMouseOut={e => e.currentTarget.style.backgroundColor = '#8b5cf6'}>
-            Create Account
+          <button 
+            type="submit" 
+            disabled={isLoading}
+            style={{ width: '100%', padding: '14px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: isLoading ? 'not-allowed' : 'pointer', opacity: isLoading ? 0.7 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center', transition: 'background-color 0.2s' }} 
+            onMouseOver={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#7c3aed'; }} 
+            onMouseOut={e => { if (!isLoading) e.currentTarget.style.backgroundColor = '#8b5cf6'; }}
+          >
+            {isLoading ? 'Processing...' : 'Create Account'}
           </button>
         </form>
       </div>
