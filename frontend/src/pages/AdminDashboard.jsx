@@ -359,7 +359,7 @@ export default function AdminDashboard() {
   if (!admin) return <div style={{ color: '#fff', padding: '20px' }}>Loading Admin Panel...</div>;
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#141617', position: 'relative' }}>
+    <div style={{ display: 'flex', height: '100vh', backgroundColor: '#141617', position: 'relative', overflow: 'hidden' }}>
       
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
@@ -413,7 +413,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', marginLeft: 0 }} className="admin-main-content">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', width: '100%', marginLeft: 0, height: '100vh', overflowY: 'auto' }} className="admin-main-content">
         
         {/* Topbar */}
         <div style={{ padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1c1e1f', borderBottom: '1px solid #2a2a2a' }}>
