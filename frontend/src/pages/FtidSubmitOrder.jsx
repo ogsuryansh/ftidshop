@@ -26,7 +26,7 @@ export default function FtidSubmitOrder() {
   const [dbProducts, setDbProducts] = useState([]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/products`)
+    fetch(`${API_BASE_URL}/api/products`, { cache: 'no-store' })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {

@@ -586,6 +586,7 @@ app.delete('/api/admin/order/:id', authAdmin, async (req, res) => {
 // Public endpoint to fetch active store catalog for users
 app.get('/api/products', async (req, res) => {
     try {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         const products = await Product.find({ active: true }).sort({ category: 1, courier: 1, name: 1 });
         res.json(products);
     } catch (err) {
