@@ -40,6 +40,7 @@ export default function ReceiptsSubmitOrder() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return; // Prevent double-clicks on the frontend
     if (!category || category === 'Select category') {
       alert("Please select a category.");
       return;

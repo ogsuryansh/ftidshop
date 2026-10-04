@@ -150,7 +150,7 @@ export default function FtidSubmitOrder() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    e.preventDefault();
+    if (submitting) return; // Prevent double-clicks on the frontend
     if (!user) {
       alert("Please log in to submit an order.");
       return;
