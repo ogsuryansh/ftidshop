@@ -702,16 +702,17 @@ app.post('/api/orders', async (req, res) => {
         
         // If user pays with wallet balance
         if (paymentMethod === 'Wallet Balance' && type !== 'deposit' && type !== 'Deposit') {
-            const user = await User.findById(userId);
-            if (!user) return res.status(404).json({ error: 'User not found' });
+            const user = await User.findOneAndUpdate(
+                { _id: userId, credits: { $gte: price } },
+                { $inc: { credits: -price } },
+                { new: true }
+            );
             
-            if (user.credits < price) {
+            if (!user) {
+                const existingUser = await User.findById(userId);
+                if (!existingUser) return res.status(404).json({ error: 'User not found' });
                 return res.status(400).json({ error: 'Insufficient wallet balance.' });
             }
-            
-            // Deduct balance
-            user.credits -= price;
-            await user.save();
             
             orderData.paymentStatus = 'Paid';
             orderData.status = 'Pending';
