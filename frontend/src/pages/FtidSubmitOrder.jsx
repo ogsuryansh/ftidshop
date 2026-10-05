@@ -279,14 +279,14 @@ export default function FtidSubmitOrder() {
 
                   {m.badge && (
                     <span 
-                      onClick={() => m.desc && m.desc.trim() !== '' && setActiveDesc(m)}
+                      onClick={() => setActiveDesc(m)}
                       style={{ 
                         backgroundColor: m.badgeColor || '#4caf50', 
                         color: '#fff', 
                         fontSize: '11px', 
                         padding: '3px 8px', 
                         borderRadius: '12px', 
-                        cursor: (m.desc && m.desc.trim() !== '') ? 'pointer' : 'default',
+                        cursor: 'pointer',
                         display: 'inline-block'
                       }}
                     >
