@@ -435,7 +435,9 @@ export default function FtidSubmitOrder() {
             boxShadow: '0 20px 50px rgba(0,0,0,0.8)', position: 'relative'
           }}>
             <h3 style={{ marginTop: 0, color: '#00f2fe', fontSize: '18px', fontWeight: '700' }}>{activeDesc.name}</h3>
-            <p style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.6', margin: '15px 0' }}>{activeDesc.desc}</p>
+            <p style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.6', margin: '15px 0' }}>
+              {activeDesc.desc && activeDesc.desc.trim() !== '' ? activeDesc.desc : activeDesc.badge}
+            </p>
             <div style={{ textAlign: 'right' }}>
               <button
                 onClick={() => setActiveDesc(null)}
