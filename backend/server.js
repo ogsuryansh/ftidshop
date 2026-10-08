@@ -773,6 +773,22 @@ app.get('/api/payment/address/:currency', async (req, res) => {
     res.json({ currency, address });
 });
 
+// Check if a payment was received on an address WITHOUT an existing order (pre-order verification)
+app.post('/api/verify-payment/check', async (req, res) => {
+    try {
+        const { currency, address, amount } = req.body;
+        if (!currency || !address || !amount) {
+            return res.status(400).json({ error: 'currency, address, and amount are required' });
+        }
+        const result = await verifyPayment(currency, address, Number(amount));
+        res.json({ verified: result.verified, txHash: result.txHash || null });
+    } catch (err) {
+        console.error('[PreCheck]', err);
+        res.status(500).json({ error: 'Verification error' });
+    }
+});
+
+
 // Manually trigger payment check for a specific order
 app.post('/api/verify-payment/:orderId', async (req, res) => {
     try {
