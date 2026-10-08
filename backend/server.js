@@ -17,15 +17,19 @@ const Product = require('./models/Product');
 const Settings = require('./models/Settings');
 const { verifyPayment } = require('./services/cryptoVerifier');
 
-// ─── Wallet addresses (set in .env) ──────────────────────────────────────────
-const WALLET_ADDRESSES = {
-    USDT_TRC20: process.env.WALLET_USDT_TRC20 || 'TBtgkq5GTy1q4thASK23hmfRrJ8grLD4FR',
-    BTC:        process.env.WALLET_BTC        || '1F5Y3DYgZtTNLGkiyPz4vt762665qgnBpJ',
-    LTC:        process.env.WALLET_LTC        || 'Lhkby8mb1DgZfVsQWrSopScTeNf252qi9Q',
-    SOL:        process.env.WALLET_SOL        || 'AigcpMzqZw9asMFVSdNi8T4MAHHujykEUdyUjTH9F6JG',
-    ETH:        process.env.WALLET_ETH        || '0x54defcf541d174e7443c1ada58875e3e04ca5178',
-    TON:        process.env.WALLET_TON        || 'UQDxZ_1B6JccNyqYpXLnKFK-McmvtMOesfP06av73h-CYNFM'
-};
+// ─── Wallet addresses helper ──────────────────────────────────────────
+async function getWalletAddresses() {
+    let settings = await Settings.findOne();
+    if (!settings) settings = new Settings();
+    return {
+        USDT_TRC20: settings.walletUSDT_TRC20,
+        BTC: settings.walletBTC,
+        LTC: settings.walletLTC,
+        SOL: settings.walletSOL,
+        ETH: settings.walletETH,
+        TON: settings.walletTON
+    };
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -716,9 +720,12 @@ app.post('/api/orders', async (req, res) => {
             
             orderData.paymentStatus = 'Paid';
             orderData.status = 'Pending';
-        } else if (paymentCurrency && WALLET_ADDRESSES[paymentCurrency]) {
-            // Attach the real wallet address for the chosen currency
-            orderData.paymentAddress = WALLET_ADDRESSES[paymentCurrency];
+        } else if (paymentCurrency) {
+            const walletAddresses = await getWalletAddresses();
+            if (walletAddresses[paymentCurrency]) {
+                // Attach the real wallet address for the chosen currency
+                orderData.paymentAddress = walletAddresses[paymentCurrency];
+            }
         }
         
         const newOrder = new Order(orderData);
@@ -733,7 +740,8 @@ app.post('/api/orders', async (req, res) => {
 app.put('/api/orders/:orderId/currency', async (req, res) => {
     try {
         const { paymentCurrency } = req.body;
-        const address = WALLET_ADDRESSES[paymentCurrency];
+        const walletAddresses = await getWalletAddresses();
+        const address = walletAddresses[paymentCurrency];
         if (!address) return res.status(400).json({ error: 'Unsupported currency' });
         
         const updated = await Order.findByIdAndUpdate(
@@ -757,9 +765,10 @@ app.get('/api/orders/:userId', async (req, res) => {
 // ─── Payment verification endpoints ──────────────────────────────────────────
 
 // GET wallet address for selected currency
-app.get('/api/payment/address/:currency', (req, res) => {
+app.get('/api/payment/address/:currency', async (req, res) => {
     const { currency } = req.params;
-    const address = WALLET_ADDRESSES[currency];
+    const walletAddresses = await getWalletAddresses();
+    const address = walletAddresses[currency];
     if (!address) return res.status(404).json({ error: 'Currency not supported or wallet not configured' });
     res.json({ currency, address });
 });

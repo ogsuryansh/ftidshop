@@ -657,6 +657,32 @@ export default function AdminDashboard() {
                   <input type="email" required value={settings.adminEmail || ''} onChange={e => setSettings({...settings, adminEmail: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
                   <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#888' }}>The email address that receives the 6-digit 2FA code during Admin Login.</p>
                 </div>
+                <hr style={{ border: 'none', borderTop: '1px solid #333', margin: '10px 0' }} />
+                <h4 style={{ margin: '0', color: '#fff' }}>Crypto Wallet Addresses</h4>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>USDT (TRC20)</label>
+                  <input type="text" value={settings.walletUSDT_TRC20 || ''} onChange={e => setSettings({...settings, walletUSDT_TRC20: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>BTC (Bitcoin)</label>
+                  <input type="text" value={settings.walletBTC || ''} onChange={e => setSettings({...settings, walletBTC: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>LTC (Litecoin)</label>
+                  <input type="text" value={settings.walletLTC || ''} onChange={e => setSettings({...settings, walletLTC: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>SOL (Solana)</label>
+                  <input type="text" value={settings.walletSOL || ''} onChange={e => setSettings({...settings, walletSOL: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>ETH (Ethereum)</label>
+                  <input type="text" value={settings.walletETH || ''} onChange={e => setSettings({...settings, walletETH: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>TON (Toncoin)</label>
+                  <input type="text" value={settings.walletTON || ''} onChange={e => setSettings({...settings, walletTON: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                </div>
                 <button type="submit" style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Save Settings</button>
               </form>
             </div>
