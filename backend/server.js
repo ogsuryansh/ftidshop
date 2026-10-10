@@ -781,6 +781,14 @@ app.post('/api/verify-payment/check', async (req, res) => {
             return res.status(400).json({ error: 'currency, address, and amount are required' });
         }
         const result = await verifyPayment(currency, address, Number(amount));
+        
+        if (result.verified && result.txHash) {
+             const existingOrder = await Order.findOne({ txHash: result.txHash });
+             if (existingOrder) {
+                  return res.json({ verified: false, message: 'Transaction already claimed by another order.' });
+             }
+        }
+        
         res.json({ verified: result.verified, txHash: result.txHash || null });
     } catch (err) {
         console.error('[PreCheck]', err);
@@ -807,6 +815,13 @@ app.post('/api/verify-payment/:orderId', async (req, res) => {
         });
 
         if (result.verified) {
+            if (result.txHash) {
+                const existingOrder = await Order.findOne({ txHash: result.txHash, _id: { $ne: order._id } });
+                if (existingOrder) {
+                    return res.json({ verified: false, order, message: 'Transaction already claimed by another order' });
+                }
+            }
+
             const updated = await Order.findByIdAndUpdate(
                 order._id,
                 { paymentStatus: 'Paid', status: 'Pending', txHash: result.txHash },

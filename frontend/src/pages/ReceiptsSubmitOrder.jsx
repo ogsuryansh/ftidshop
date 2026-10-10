@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import PaymentModal from '../components/PaymentModal';
+import PrePaymentModal from '../components/PrePaymentModal';
 import API_BASE_URL from '../config';
 
 function safeParseUser(raw) {
@@ -16,6 +17,7 @@ export default function ReceiptsSubmitOrder() {
   const [createdOrder, setCreatedOrder] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('Crypto');
   const [orderSuccessMsg, setOrderSuccessMsg] = useState('');
+  const [pendingOrderData, setPendingOrderData] = useState(null);
 
   const user = safeParseUser(localStorage.getItem('user'));
 
@@ -61,55 +63,63 @@ export default function ReceiptsSubmitOrder() {
     const fileCount = fileData ? fileData.length : 0;
     const quantity = Math.max(fileCount, 1);
     const price = basePrice * quantity;
-    setSubmitting(true);
-    setLoadingTransition(true);
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user._id || user.id,
-          type: 'Receipt',
-          country: category,
-          method: category,
-          note,
-          fileData,
-          price,
-          status: paymentMethod === 'Wallet Balance' ? 'Pending' : 'Pending Payment',
-          paymentStatus: paymentMethod === 'Wallet Balance' ? 'Paid' : 'Pending Payment',
-          paymentMethod
-        })
-      });
-      const data = await res.json();
+    if (paymentMethod === 'Wallet Balance') {
+      setSubmitting(true);
+      setLoadingTransition(true);
 
-      if (res.ok) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/orders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user._id || user.id,
+            type: 'Receipt',
+            country: category,
+            method: category,
+            note,
+            fileData,
+            price,
+            status: 'Pending',
+            paymentStatus: 'Paid',
+            paymentMethod: 'Wallet Balance'
+          })
+        });
+        const data = await res.json();
+
         setTimeout(() => {
           setSubmitting(false);
           setLoadingTransition(false);
           
-          if (paymentMethod === 'Wallet Balance') {
-             const updatedUser = { ...user, credits: user.credits - price };
-             localStorage.setItem('user', JSON.stringify(updatedUser));
-             setOrderSuccessMsg('Order paid successfully using Wallet Balance!');
-             setTimeout(() => setOrderSuccessMsg(''), 3000);
+          if (res.ok) {
+            const updatedUser = { ...user, credits: user.credits - price };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setOrderSuccessMsg('Order paid successfully using Wallet Balance!');
+            setTimeout(() => setOrderSuccessMsg(''), 3000);
+            setCategory(''); setNote(''); setFileData(null);
           } else {
-             setCreatedOrder(data);
+            alert(data.error || "Failed to create order.");
           }
-          
-          setCategory(''); setNote(''); setFileData(null);
         }, 1200);
-      } else {
+      } catch (err) {
+        console.error(err);
         setSubmitting(false);
         setLoadingTransition(false);
-        alert(data.error || "Failed to create order.");
+        alert("Error submitting order.");
       }
-    } catch (err) {
-      console.error(err);
-      setSubmitting(false);
-      setLoadingTransition(false);
-      alert("Error submitting order.");
+      return;
     }
+
+    setPendingOrderData({
+      userId: user._id || user.id,
+      type: 'Receipt',
+      country: category,
+      method: category,
+      note,
+      fileData,
+      price,
+      paymentMethod: 'Crypto'
+    });
   };
 
   const renderCategoryPrices = {
@@ -284,8 +294,18 @@ export default function ReceiptsSubmitOrder() {
         </div>
       )}
 
-      {createdOrder && (
-        <PaymentModal order={createdOrder} onClose={() => setCreatedOrder(null)} />
+      {pendingOrderData && (
+        <PrePaymentModal
+          orderData={pendingOrderData}
+          apiBase={API_BASE_URL}
+          onClose={() => setPendingOrderData(null)}
+          onPaymentConfirmed={(savedOrder) => {
+            setPendingOrderData(null);
+            setOrderSuccessMsg('Payment confirmed! Your order has been placed successfully.');
+            setTimeout(() => setOrderSuccessMsg(''), 4000);
+            setCategory(''); setNote(''); setFileData(null);
+          }}
+        />
       )}
     </div>
   );

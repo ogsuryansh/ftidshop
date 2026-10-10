@@ -476,8 +476,13 @@ export default function AdminDashboard() {
                       <td className="p_2">{t.userId?.email || 'Guest'}</td>
                       <td className="p_2" style={{ fontWeight: 'bold' }}>{t.paymentCurrency || 'Crypto'}</td>
                       <td className="p_2" style={{ color: '#4caf50', fontWeight: 'bold' }}>${t.price || 0}</td>
-                      <td className="p_2" style={{ fontSize: '11px', fontFamily: 'monospace', color: '#888', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {t.txHash ? t.txHash : 'Manual Approval'}
+                      <td className="p_2" style={{ fontSize: '11px', fontFamily: 'monospace', color: '#888', maxWidth: '250px', wordBreak: 'break-all' }}>
+                        {t.txHash ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            {t.txHash}
+                            <i className="bx bx-copy" style={{ cursor: 'pointer', color: '#00f2fe' }} title="Copy Tx Hash" onClick={() => navigator.clipboard.writeText(t.txHash)}></i>
+                          </div>
+                        ) : 'Manual Approval'}
                       </td>
                       <td className="p_2" style={{ fontSize: '12px' }}>{new Date(t.createdAt).toLocaleDateString()}</td>
                       <td className="p_2">
@@ -520,10 +525,15 @@ export default function AdminDashboard() {
                         <div style={{ fontSize: '11px', color: '#888' }}>{o.method || o.country}</div>
                       </td>
                       <td className="p_2" style={{ fontSize: '13px' }}>{o.userId?.email || 'Guest'}</td>
-                      <td className="p_2" style={{ fontSize: '12px', maxWidth: '200px' }}>
+                      <td className="p_2" style={{ fontSize: '12px', maxWidth: '250px', wordBreak: 'break-word' }}>
                         {o.trackingNumber && <div><strong>Track:</strong> {o.trackingNumber}</div>}
                         {o.note && <div style={{ color: '#aaa', fontStyle: 'italic' }}>"{o.note}"</div>}
-                        {o.txHash && <div style={{ fontSize: '10px', color: '#00f2fe', fontFamily: 'monospace' }}>TX: {o.txHash.slice(0, 10)}...</div>}
+                        {o.txHash && (
+                           <div style={{ fontSize: '10px', color: '#00f2fe', fontFamily: 'monospace', marginTop: '4px', wordBreak: 'break-all' }}>
+                             <strong>TX:</strong> {o.txHash}
+                             <i className="bx bx-copy" style={{ cursor: 'pointer', marginLeft: '4px' }} title="Copy Tx Hash" onClick={() => navigator.clipboard.writeText(o.txHash)}></i>
+                           </div>
+                        )}
                       </td>
                       <td className="p_2">
                         {Array.isArray(o.fileData) && o.fileData.length > 0 ? (
