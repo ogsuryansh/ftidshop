@@ -82,23 +82,22 @@ async function verifyBTC(address, amountUSD) {
     }
 }
 
-// ─── TON Verification (TON Center - FREE with API key) ───────────────────────
+// ─── TON Verification (TON Center - works without API key) ───────────────────
 async function verifyTON(address, amountUSD) {
-    const apiKey = process.env.TON_API_KEY;
-    if (!apiKey) {
-        console.warn('[TON Verify] No TON_API_KEY set in .env, skipping TON verification');
-        return { verified: false, error: 'TON_API_KEY not configured' };
-    }
-
     try {
         const tonPrice = await getCryptoPrice('the-open-network');
         if (!tonPrice) return { verified: false, error: 'Could not fetch TON price' };
 
         const expectedNano = (amountUSD / tonPrice) * 1e9;
-        const tolerance = 0.02;
+        const tolerance = 0.03;
+
+        // Use API key if available and valid, otherwise hit public endpoint without key
+        const apiKey = process.env.TON_API_KEY && process.env.TON_API_KEY !== 'YOUR_TON_API_KEY_HERE'
+            ? process.env.TON_API_KEY : null;
+        const headers = apiKey ? { 'X-API-Key': apiKey } : {};
 
         const url = `https://toncenter.com/api/v3/transactions?account=${address}&limit=20`;
-        const data = await fetchJSON(url, { 'X-API-Key': apiKey });
+        const data = await fetchJSON(url, headers);
 
         if (!data.transactions || !Array.isArray(data.transactions)) return { verified: false };
 
@@ -118,28 +117,48 @@ async function verifyTON(address, amountUSD) {
     }
 }
 
-// ─── LTC Verification (Blockcypher API) ────────────────────────────────────
+// ─── LTC Verification (Blockchair - supports bech32 ltc1q addresses) ─────────
+// NOTE: BlockCypher does NOT support bech32 (ltc1q...) addresses. Blockchair does.
 async function verifyLTC(address, amountUSD) {
     try {
         const ltcPrice = await getCryptoPrice('litecoin');
         if (!ltcPrice) return { verified: false, error: 'Could not fetch LTC price' };
 
-        const expectedSatoshis = (amountUSD / ltcPrice) * 1e8;
+        const expectedLitoshi = (amountUSD / ltcPrice) * 1e8; // 1 LTC = 1e8 litoshi
         const tolerance = 0.03;
 
-        const data = await fetchJSON(`https://api.blockcypher.com/v1/ltc/main/addrs/${address}/full?limit=10`);
-        if (!data || !Array.isArray(data.txs)) return { verified: false };
+        const data = await fetchJSON(`https://api.blockchair.com/litecoin/dashboards/address/${address}?limit=10`);
+        if (!data || !data.data || !data.data[address]) return { verified: false };
 
-        for (const tx of data.txs) {
-            const received = tx.outputs
-                .filter(o => o.addresses && o.addresses.includes(address))
-                .reduce((sum, o) => sum + o.value, 0);
+        const addrData = data.data[address];
 
-            const diff = Math.abs(received - expectedSatoshis) / expectedSatoshis;
-            if (received > 0 && diff <= tolerance) {
-                return { verified: true, txHash: tx.hash };
+        // Check UTXOs (unspent outputs sitting at the address)
+        const utxos = addrData.utxo || [];
+        for (const utxo of utxos) {
+            const diff = Math.abs(utxo.value - expectedLitoshi) / expectedLitoshi;
+            if (utxo.value > 0 && diff <= tolerance) {
+                return { verified: true, txHash: utxo.transaction_hash };
             }
         }
+
+        // Fall back: check last 5 transactions for matching output
+        const txList = (addrData.transactions || []).slice(0, 5);
+        for (const txHash of txList) {
+            try {
+                const txData = await fetchJSON(`https://api.blockchair.com/litecoin/dashboards/transaction/${txHash}`);
+                if (!txData || !txData.data || !txData.data[txHash]) continue;
+                const outputs = txData.data[txHash].outputs || [];
+                for (const out of outputs) {
+                    if (out.recipient === address) {
+                        const diff = Math.abs(out.value - expectedLitoshi) / expectedLitoshi;
+                        if (out.value > 0 && diff <= tolerance) {
+                            return { verified: true, txHash };
+                        }
+                    }
+                }
+            } catch { continue; }
+        }
+
         return { verified: false };
     } catch (e) {
         console.error('[LTC Verify]', e.message);
