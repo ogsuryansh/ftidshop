@@ -132,6 +132,11 @@ app.use(async (req, res, next) => {
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
+// Heleket domain verification route
+app.get(['/api/heleket', '/api/heleket.txt', '/heleket.txt', '/heleket=097c4569', '/heleket=097c4569.txt'], (req, res) => {
+    res.type('text/plain').send('heleket=097c4569');
+});
+
 app.post('/api/register', async (req, res) => {
     const { name, email, password, captchaToken } = req.body;
     
