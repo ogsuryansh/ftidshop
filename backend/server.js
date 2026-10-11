@@ -428,59 +428,47 @@ app.post('/api/admin/login', async (req, res) => {
         const settings = await Settings.findOne();
         const destinationEmail = settings?.adminEmail || process.env.ADMIN_EMAIL || "vishalgiri0044@gmail.com";
         
-        let emailSent = false;
-        try {
-            if (process.env.MAILTRAP_TOKEN) {
-                const client = new MailtrapClient({ token: process.env.MAILTRAP_TOKEN });
-                await client.send({
-                    from: { email: "hello@demomailtrap.co", name: "ArpanFtid Admin" },
-                    to: [{ email: destinationEmail }],
-                    subject: "Admin Login OTP Code",
-                    text: `Your 2-step verification code is: ${otpCode}`,
-                    html: `<b>Your 2-step verification code is: ${otpCode}</b>`,
-                    category: "Admin OTP",
-                });
-                console.log("OTP sent via Mailtrap to", destinationEmail);
-                emailSent = true;
-            } else if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-                const transporter = nodemailer.createTransport({
-                    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-                    port: process.env.SMTP_PORT || 587,
-                    secure: false,
-                    auth: {
-                        user: process.env.SMTP_USER,
-                        pass: process.env.SMTP_PASS
-                    }
-                });
-                
-                let info = await transporter.sendMail({
-                    from: `"ArpanFtid Admin" <${process.env.SMTP_USER}>`,
-                    to: destinationEmail,
-                    subject: "Admin Login OTP Code",
-                    text: `Your 2-step verification code is: ${otpCode}`,
-                    html: `<b>Your 2-step verification code is: ${otpCode}</b>`,
-                });
-                
-                console.log("OTP sent. Message ID:", info.messageId);
-                if (!process.env.SMTP_HOST) {
-                    console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
-                }
-                emailSent = true;
+        if (process.env.MAILTRAP_TOKEN) {
+            const client = new MailtrapClient({ token: process.env.MAILTRAP_TOKEN });
+            await client.send({
+                from: { email: "hello@demomailtrap.co", name: "ArpanFtid Admin" },
+                to: [{ email: destinationEmail }],
+                subject: "Admin Login OTP Code",
+                text: `Your 2-step verification code is: ${otpCode}`,
+                html: `<b>Your 2-step verification code is: ${otpCode}</b>`,
+                category: "Admin OTP",
+            });
+            console.log("OTP sent via Mailtrap to", destinationEmail);
+        } else {
+            if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+                throw new Error("SMTP credentials (SMTP_USER / SMTP_PASS) not configured!");
             }
-        } catch (mailErr) {
-            console.error("Failed to send OTP email:", mailErr.message);
-        }
-
-        if (!emailSent) {
-            console.warn("OTP email sending failed or unconfigured. Falling back to direct login for admin:", admin.username);
-            const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
-            return res.json({ token, admin: { id: admin._id, username: admin.username } });
+            
+            const transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || 'smtp.gmail.com',
+                port: process.env.SMTP_PORT || 587,
+                secure: false,
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS
+                }
+            });
+            
+            let info = await transporter.sendMail({
+                from: `"ArpanFtid Admin" <${process.env.SMTP_USER}>`,
+                to: destinationEmail,
+                subject: "Admin Login OTP Code",
+                text: `Your 2-step verification code is: ${otpCode}`,
+                html: `<b>Your 2-step verification code is: ${otpCode}</b>`,
+            });
+            
+            console.log("OTP sent. Message ID:", info.messageId);
         }
 
         res.json({ step: '2FA_REQUIRED', adminId: admin._id });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Server error: ' + err.message });
+        res.status(500).json({ error: 'Server error sending OTP: ' + err.message });
     }
 });
 
@@ -489,14 +477,6 @@ app.post('/api/admin/verify-2fa', async (req, res) => {
     try {
         if (!adminId || !otp) return res.status(400).json({ error: 'Missing adminId or otp' });
         
-        // Emergency master fallback codes in case email is delayed or fails
-        if (otp === '666666' || otp === '000000') {
-            const admin = await Admin.findById(adminId);
-            if (!admin) return res.status(400).json({ error: 'Admin not found' });
-            const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
-            return res.json({ token, admin: { id: admin._id, username: admin.username } });
-        }
-
         const store = otpStore.get(adminId);
         if (!store) return res.status(400).json({ error: 'OTP expired or invalid' });
         
