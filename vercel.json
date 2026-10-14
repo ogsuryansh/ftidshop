@@ -27,6 +27,14 @@
       "dest": "backend/server.js"
     },
     {
+      "src": "/(trybit-.*)",
+      "dest": "frontend/dist/$1"
+    },
+    {
+      "src": "/(.*\\.txt)",
+      "dest": "frontend/dist/$1"
+    },
+    {
       "src": "/trybit-verification.html",
       "dest": "frontend/dist/trybit-verification.html"
     },

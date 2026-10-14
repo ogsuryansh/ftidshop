@@ -137,6 +137,16 @@ app.get(['/api/heleket', '/api/heleket.txt', '/heleket.txt', '/heleket=097c4569'
     res.type('text/plain').send('heleket=097c4569');
 });
 
+// Trybit domain verification routes
+app.get([
+    '/trybit-ktz9odgtprwuyub0l2e48wedex47ny05.txt',
+    '/api/trybit-ktz9odgtprwuyub0l2e48wedex47ny05.txt',
+    '/trybit-ktz9odgtprwuyub012e48wedex47ny05.txt',
+    '/api/trybit-ktz9odgtprwuyub012e48wedex47ny05.txt'
+], (req, res) => {
+    res.type('text/plain').send('ktz9odgtprwuyub0l2e48wedex47ny05');
+});
+
 app.post('/api/register', async (req, res) => {
     const { name, email, password, captchaToken } = req.body;
     
