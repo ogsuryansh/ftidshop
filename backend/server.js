@@ -179,7 +179,8 @@ async function syncTrybitOrder(order) {
     if (!inv || !trybit.isPaidStatus(inv.status)) return order;
     if (inv.order_id && String(inv.order_id) !== String(order._id)) return order;
     const paidUsd = Number(inv.amount_paid_usd);
-    if (!isNaN(paidUsd) && paidUsd < order.price * 0.99) return order; // underpaid
+    // Test-mode invoices are confirmed without real payment, so the amount check only applies to live invoices
+    if (!inv.test_mode && !isNaN(paidUsd) && paidUsd < order.price * 0.99) return order; // underpaid
     const tx = Array.isArray(inv.tx_list) ? inv.tx_list.find(Boolean) : null;
     return markOrderPaid(order._id, { txHash: tx || undefined, trybitCurrency: inv.currency && inv.currency.fullcode });
 }
