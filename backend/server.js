@@ -238,8 +238,9 @@ app.get('/api/trybit/status/:orderId', async (req, res) => {
 // Trybit POSTBACK (notification URL). Never trusts the payload: re-checks the invoice via the API.
 app.post('/api/trybit/postback', async (req, res) => {
     try {
+        console.log('[Trybit Postback Received]:', req.body);
         const { invoice_id, order_id, token } = req.body || {};
-        if (!invoice_id) return res.status(400).json({ error: 'Missing invoice_id' });
+        if (!invoice_id) return res.status(200).json({ message: 'Missing invoice_id' });
 
         const { secret } = trybit.cfg();
         if (token && secret) {
@@ -249,13 +250,18 @@ app.post('/api/trybit/postback', async (req, res) => {
 
         const order = (order_id && mongoose.isValidObjectId(order_id) && await Order.findById(order_id))
             || await Order.findOne({ trybitInvoiceId: { $in: [String(invoice_id), `INV-${invoice_id}`] } });
-        if (!order) return res.status(404).json({ error: 'Order not found' });
+        
+        if (order) {
+            await syncTrybitOrder(order);
+        } else {
+            console.log('[Trybit] Postback received for test or unlinked invoice:', invoice_id);
+        }
 
-        await syncTrybitOrder(order);
-        res.json({ message: 'Postback received' });
+        // Always return 200 OK so Trybit marks the postback as delivered successfully
+        res.status(200).json({ message: 'Postback received' });
     } catch (err) {
-        console.error('[Trybit] postback', err);
-        res.status(500).json({ error: 'Server error' });
+        console.error('[Trybit] postback error:', err);
+        res.status(200).json({ message: 'Postback received' });
     }
 });
 

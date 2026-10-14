@@ -3,9 +3,9 @@ const API_BASE = 'https://api.trybit.com/v2';
 
 function cfg() {
     return {
-        apiKey: process.env.TRYBIT_API_KEY,
-        shopId: process.env.TRYBIT_SHOP_ID,
-        secret: process.env.TRYBIT_SECRET_KEY
+        apiKey: process.env.TRYBIT_API_KEY || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1dWlkIjoiTVRJME5qSTEiLCJ0eXBlIjoicHJvamVjdCIsInYiOiI5ODgzZGU5ZTFhYWY2NGI3NGZmZDYxYzE3MjhmN2I3NWE3YTViMDhlMDY5ZmM0ODI3YmEyOWI4MDc2ZmZlMWRjIiwiZXhwIjo4ODE5MTgzNzAwMn0.QY6Y4Ss7H8ipCdsZIwXSFvnKyv_2yPiB7l_zN0S43jo',
+        shopId: process.env.TRYBIT_SHOP_ID || 'klGTkjbMRsgwgZiX',
+        secret: process.env.TRYBIT_SECRET_KEY || 'YZfrUeBGu7DwZWGP9gSf8hwRqwN2bsbWuJDv'
     };
 }
 
