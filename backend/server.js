@@ -147,6 +147,123 @@ app.get([
     res.type('text/plain').send('ktz9odgtprwuyub0l2e48wedex47ny05');
 });
 
+// ─── Trybit payment gateway ───────────────────────────────────────────────────
+const trybit = require('./services/trybit');
+
+// Marks an order as paid exactly once (atomic, idempotent) and applies deposit credit.
+async function markOrderPaid(orderId, { txHash, trybitCurrency } = {}) {
+    const updated = await Order.findOneAndUpdate(
+        { _id: orderId, paymentStatus: { $ne: 'Paid' } },
+        { paymentStatus: 'Paid', status: 'Pending', paymentProvider: 'trybit',
+          ...(txHash ? { txHash } : {}), ...(trybitCurrency ? { trybitCurrency } : {}) },
+        { new: true }
+    );
+    if (!updated) return Order.findById(orderId); // already paid earlier
+    if (updated.type === 'deposit' || updated.type === 'Deposit') {
+        const settings = await Settings.findOne() || new Settings();
+        let bonus = 0;
+        if (updated.price >= settings.depositBonusThreshold) {
+            bonus = (updated.price * settings.depositBonusPercentage) / 100;
+        }
+        await User.findByIdAndUpdate(updated.userId, { $inc: { credits: updated.price + bonus } });
+        updated.status = 'Completed';
+        await Order.findByIdAndUpdate(updated._id, { status: 'Completed' });
+    }
+    return updated;
+}
+
+// Checks Trybit directly (server-to-server) and settles the order if the invoice is paid.
+async function syncTrybitOrder(order) {
+    if (order.paymentStatus === 'Paid' || !order.trybitInvoiceId) return order;
+    const inv = await trybit.getInvoice(order.trybitInvoiceId);
+    if (!inv || !trybit.isPaidStatus(inv.status)) return order;
+    if (inv.order_id && String(inv.order_id) !== String(order._id)) return order;
+    const paidUsd = Number(inv.amount_paid_usd);
+    if (!isNaN(paidUsd) && paidUsd < order.price * 0.99) return order; // underpaid
+    const tx = Array.isArray(inv.tx_list) ? inv.tx_list.find(Boolean) : null;
+    return markOrderPaid(order._id, { txHash: tx || undefined, trybitCurrency: inv.currency && inv.currency.fullcode });
+}
+
+// Create (or reuse) a Trybit invoice for an existing unpaid order
+app.post('/api/trybit/create-invoice', async (req, res) => {
+    try {
+        if (!trybit.isConfigured()) return res.status(503).json({ error: 'Payment gateway not configured' });
+        const { orderId } = req.body;
+        if (!orderId) return res.status(400).json({ error: 'orderId is required' });
+        let order = await Order.findById(orderId);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        if (order.paymentStatus === 'Paid') return res.json({ paid: true, order });
+        if (!(order.price > 0)) return res.status(400).json({ error: 'Invalid order amount' });
+
+        // Reuse a still-open invoice
+        if (order.trybitInvoiceId && order.trybitLink) {
+            try {
+                const existing = await trybit.getInvoice(order.trybitInvoiceId);
+                if (existing && trybit.isPaidStatus(existing.status)) {
+                    order = await syncTrybitOrder(order);
+                    return res.json({ paid: order.paymentStatus === 'Paid', order, link: order.trybitLink });
+                }
+                if (existing && existing.status === 'created') {
+                    return res.json({ link: order.trybitLink, invoiceId: order.trybitInvoiceId, orderId: order._id });
+                }
+            } catch (e) { console.warn('[Trybit] reuse check failed:', e.message); }
+        }
+
+        const user = await User.findById(order.userId);
+        const inv = await trybit.createInvoice({ amount: order.price, orderId: order._id, email: user && user.email });
+        order.paymentProvider = 'trybit';
+        order.trybitInvoiceId = inv.uuid;
+        order.trybitLink = inv.link;
+        await order.save();
+        res.json({ link: inv.link, invoiceId: inv.uuid, orderId: order._id });
+    } catch (err) {
+        console.error('[Trybit] create-invoice', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Poll endpoint used by the frontend while the customer pays on Trybit
+app.get('/api/trybit/status/:orderId', async (req, res) => {
+    try {
+        let order = await Order.findById(req.params.orderId);
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+        try { order = await syncTrybitOrder(order); } catch (e) { console.warn('[Trybit] status sync:', e.message); }
+        res.json({ paid: order.paymentStatus === 'Paid', order });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Trybit POSTBACK (notification URL). Never trusts the payload: re-checks the invoice via the API.
+app.post('/api/trybit/postback', async (req, res) => {
+    try {
+        const { invoice_id, order_id, token } = req.body || {};
+        if (!invoice_id) return res.status(400).json({ error: 'Missing invoice_id' });
+
+        const { secret } = trybit.cfg();
+        if (token && secret) {
+            try { jwt.verify(String(token).trim(), secret, { algorithms: ['HS256'] }); }
+            catch (e) { console.warn('[Trybit] postback JWT not verified (relying on API lookup):', e.message); }
+        }
+
+        const order = (order_id && mongoose.isValidObjectId(order_id) && await Order.findById(order_id))
+            || await Order.findOne({ trybitInvoiceId: { $in: [String(invoice_id), `INV-${invoice_id}`] } });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        await syncTrybitOrder(order);
+        res.json({ message: 'Postback received' });
+    } catch (err) {
+        console.error('[Trybit] postback', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Which payment flow the frontend should use ('trybit' unless explicitly set to 'manual')
+app.get('/api/payment/provider', (req, res) => {
+    const manual = process.env.PAYMENT_PROVIDER === 'manual' || !trybit.isConfigured();
+    res.json({ provider: manual ? 'manual' : 'trybit' });
+});
+
 app.post('/api/register', async (req, res) => {
     const { name, email, password, captchaToken } = req.body;
     

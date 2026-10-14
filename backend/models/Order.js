@@ -17,7 +17,12 @@ const orderSchema = new mongoose.Schema({
     paymentAddress: { type: String, default: null }, // wallet address shown to user
     txHash: { type: String, default: null }, // confirmed transaction hash
     verificationAttempts: { type: Number, default: 0 },
-    lastChecked: { type: Date, default: null }
+    lastChecked: { type: Date, default: null },
+    // Trybit gateway fields
+    paymentProvider: { type: String, default: null }, // 'trybit' | 'manual'
+    trybitInvoiceId: { type: String, default: null },
+    trybitLink: { type: String, default: null },
+    trybitCurrency: { type: String, default: null }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);
