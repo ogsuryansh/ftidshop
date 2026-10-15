@@ -460,11 +460,11 @@ export default function AdminDashboard() {
               <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', minWidth: '600px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #333' }}>
+                    <th className="p_2">Hash ID</th>
                     <th className="p_2">Order ID</th>
                     <th className="p_2">User</th>
                     <th className="p_2">Currency</th>
                     <th className="p_2">Amount</th>
-                    <th className="p_2">TX Hash</th>
                     <th className="p_2">Date</th>
                     <th className="p_2">Status</th>
                   </tr>
@@ -472,18 +472,20 @@ export default function AdminDashboard() {
                 <tbody>
                   {paidOrders.map(t => (
                     <tr key={t._id} style={{ borderBottom: '1px solid #333' }}>
+                      <td className="p_2" style={{ fontSize: '11px', fontFamily: 'monospace', color: '#00f2fe', maxWidth: '280px', wordBreak: 'break-all' }}>
+                        {t.txHash ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span>{t.txHash}</span>
+                            <i className="bx bx-copy" style={{ cursor: 'pointer', color: '#00f2fe', flexShrink: 0 }} title="Copy Hash ID" onClick={() => navigator.clipboard.writeText(t.txHash)}></i>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#777' }}>Manual Approval</span>
+                        )}
+                      </td>
                       <td className="p_2 color_neutral" style={{ fontSize: '11px', fontFamily: 'monospace' }}>{t._id.slice(-8)}</td>
                       <td className="p_2">{t.userId?.email || 'Guest'}</td>
                       <td className="p_2" style={{ fontWeight: 'bold' }}>{t.paymentCurrency || 'Crypto'}</td>
                       <td className="p_2" style={{ color: '#4caf50', fontWeight: 'bold' }}>${t.price || 0}</td>
-                      <td className="p_2" style={{ fontSize: '11px', fontFamily: 'monospace', color: '#888', maxWidth: '250px', wordBreak: 'break-all' }}>
-                        {t.txHash ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            {t.txHash}
-                            <i className="bx bx-copy" style={{ cursor: 'pointer', color: '#00f2fe' }} title="Copy Tx Hash" onClick={() => navigator.clipboard.writeText(t.txHash)}></i>
-                          </div>
-                        ) : 'Manual Approval'}
-                      </td>
                       <td className="p_2" style={{ fontSize: '12px' }}>{new Date(t.createdAt).toLocaleDateString()}</td>
                       <td className="p_2">
                         <span style={{ 
@@ -528,12 +530,6 @@ export default function AdminDashboard() {
                       <td className="p_2" style={{ fontSize: '12px', maxWidth: '250px', wordBreak: 'break-word' }}>
                         {o.trackingNumber && <div><strong>Track:</strong> {o.trackingNumber}</div>}
                         {o.note && <div style={{ color: '#aaa', fontStyle: 'italic' }}>"{o.note}"</div>}
-                        {o.txHash && (
-                           <div style={{ fontSize: '10px', color: '#00f2fe', fontFamily: 'monospace', marginTop: '4px', wordBreak: 'break-all' }}>
-                             <strong>TX:</strong> {o.txHash}
-                             <i className="bx bx-copy" style={{ cursor: 'pointer', marginLeft: '4px' }} title="Copy Tx Hash" onClick={() => navigator.clipboard.writeText(o.txHash)}></i>
-                           </div>
-                        )}
                       </td>
                       <td className="p_2">
                         {Array.isArray(o.fileData) && o.fileData.length > 0 ? (
@@ -585,6 +581,24 @@ export default function AdminDashboard() {
                           <option value="Paid">Paid</option>
                           <option value="Failed">Failed</option>
                         </select>
+                        {o.paymentCurrency && (
+                          <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px', fontWeight: 'bold' }}>
+                            {o.paymentCurrency}
+                          </div>
+                        )}
+                        {o.txHash ? (
+                          <div style={{ marginTop: '5px', fontSize: '10px', fontFamily: 'monospace', color: '#00f2fe', maxWidth: '240px', wordBreak: 'break-all', backgroundColor: '#0d1117', padding: '4px 6px', borderRadius: '4px', border: '1px solid #21262d' }}>
+                            <div style={{ color: '#8b949e', fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase' }}>Hash ID:</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                              <span>{o.txHash}</span>
+                              <i className="bx bx-copy" style={{ cursor: 'pointer', color: '#00f2fe', flexShrink: 0 }} title="Copy Hash ID" onClick={() => navigator.clipboard.writeText(o.txHash)}></i>
+                            </div>
+                          </div>
+                        ) : o.paymentStatus === 'Paid' ? (
+                          <div style={{ fontSize: '10px', color: '#888', marginTop: '3px' }}>
+                            {o.paymentMethod === 'Wallet Balance' ? 'Wallet Balance' : 'Manual Approval'}
+                          </div>
+                        ) : null}
                       </td>
                       <td className="p_2">
                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
