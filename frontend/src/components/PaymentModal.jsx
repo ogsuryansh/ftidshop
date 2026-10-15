@@ -3,7 +3,8 @@ import { API_BASE } from '../config';
 
 export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   const [copied, setCopied] = useState('');
-  const [selectedCrypto, setSelectedCrypto] = useState('USDT_TRC20');
+  const [enabledCoins, setEnabledCoins] = useState(['BTC', 'LTC']);
+  const [selectedCrypto, setSelectedCrypto] = useState('BTC');
   const [walletAddress, setWalletAddress] = useState('');
   const [checkStatus, setCheckStatus] = useState('idle'); // idle | checking | confirmed | failed
   const [txHash, setTxHash] = useState('');
@@ -13,13 +14,35 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
 
   // Default fallback wallet addresses
   const defaultAddresses = {
-    USDT_TRC20: 'TBtgkq5GTy1q4thASK23hmfRrJ8grLD4FR',
     BTC: '1F5Y3DYgZtTNLGkiyPz4vt762665qgnBpJ',
     LTC: 'Lhkby8mb1DgZfVsQWrSopScTeNf252qi9Q',
+    USDT_TRC20: 'TBtgkq5GTy1q4thASK23hmfRrJ8grLD4FR',
     SOL: 'AigcpMzqZw9asMFVSdNi8T4MAHHujykEUdyUjTH9F6JG',
     ETH: '0x54defcf541d174e7443c1ada58875e3e04ca5178',
     TON: 'UQDxZ_1B6JccNyqYpXLnKFK-McmvtMOesfP06av73h-CYNFM'
   };
+
+  // Fetch enabled coins from settings
+  useEffect(() => {
+    fetch(`${API_BASE}/api/settings`)
+      .then(r => r.json())
+      .then(s => {
+        if (s) {
+          const list = [];
+          if (s.enableBTC !== false) list.push('BTC');
+          if (s.enableLTC !== false) list.push('LTC');
+          if (s.enableUSDT_TRC20) list.push('USDT_TRC20');
+          if (s.enableSOL) list.push('SOL');
+          if (s.enableETH) list.push('ETH');
+          if (s.enableTON) list.push('TON');
+          if (list.length > 0) {
+            setEnabledCoins(list);
+            setSelectedCrypto(prev => list.includes(prev) ? prev : list[0]);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch real wallet address from backend
   useEffect(() => {
@@ -303,7 +326,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
                     boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
                   }}
                 >
-                  {Object.keys(cryptoLabels).map(coinKey => (
+                  {enabledCoins.map(coinKey => (
                     <option key={coinKey} value={coinKey} style={{ backgroundColor: '#161a22', color: '#fff' }}>
                       {cryptoIcons[coinKey]} {cryptoLabels[coinKey]}
                     </option>

@@ -740,7 +740,14 @@ app.get('/api/settings', async (req, res) => {
     try {
         let settings = await Settings.findOne();
         if (!settings) settings = await Settings.create({});
-        res.json(settings);
+        const doc = settings.toObject ? settings.toObject() : { ...settings };
+        if (doc.enableBTC === undefined) doc.enableBTC = true;
+        if (doc.enableLTC === undefined) doc.enableLTC = true;
+        if (doc.enableUSDT_TRC20 === undefined) doc.enableUSDT_TRC20 = false;
+        if (doc.enableSOL === undefined) doc.enableSOL = false;
+        if (doc.enableETH === undefined) doc.enableETH = false;
+        if (doc.enableTON === undefined) doc.enableTON = false;
+        res.json(doc);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error fetching settings' });

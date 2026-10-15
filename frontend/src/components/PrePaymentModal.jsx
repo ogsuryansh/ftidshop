@@ -2,7 +2,8 @@ import React from 'react';
 
 // ─── Pre-Payment Modal (verifies blockchain BEFORE saving order) ────────────
 function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
-  const [selectedCrypto, setSelectedCrypto] = React.useState('USDT_TRC20');
+  const [enabledCoins, setEnabledCoins] = React.useState(['BTC', 'LTC']);
+  const [selectedCrypto, setSelectedCrypto] = React.useState('BTC');
   const [walletAddress, setWalletAddress] = React.useState('');
   const [checkStatus, setCheckStatus] = React.useState('idle'); // idle | checking | confirmed | failed
   const [attempts, setAttempts] = React.useState(0);
@@ -13,16 +14,38 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
   const isCheckingRef = React.useRef(false);
 
   const defaultAddresses = {
-    USDT_TRC20: 'TBtgkq5GTy1q4thASK23hmfRrJ8grLD4FR',
     BTC: '1F5Y3DYgZtTNLGkiyPz4vt762665qgnBpJ',
     LTC: 'ltc1qd909zrrfr7s4ys0zt8rlcxjvu9j5p3w6rpjcwa',
+    USDT_TRC20: 'TBtgkq5GTy1q4thASK23hmfRrJ8grLD4FR',
     SOL: '6SthbfqV4pG7Gs74cZwVv6n4vtuKPWk3ByRNABk71Az3',
     ETH: '0x54defcf541d174e7443c1ada58875e3e04ca5178',
     TON: 'UQDxZ_1B6JccNyqYpXLnKFK-McmvtMOesfP06av73h-CYNFM'
   };
 
-  const cryptoLabels = { USDT_TRC20: 'USDT (TRC20)', BTC: 'Bitcoin (BTC)', LTC: 'Litecoin (LTC)', SOL: 'Solana (SOL)', ETH: 'Ethereum (ETH)', TON: 'TON' };
-  const cryptoIcons = { USDT_TRC20: '₮', BTC: '₿', LTC: 'Ł', SOL: '◎', ETH: 'Ξ', TON: '💎' };
+  const cryptoLabels = { BTC: 'Bitcoin (BTC)', LTC: 'Litecoin (LTC)', USDT_TRC20: 'USDT (TRC20)', SOL: 'Solana (SOL)', ETH: 'Ethereum (ETH)', TON: 'TON' };
+  const cryptoIcons = { BTC: '₿', LTC: 'Ł', USDT_TRC20: '₮', SOL: '◎', ETH: 'Ξ', TON: '💎' };
+
+  // Fetch enabled coins from settings
+  React.useEffect(() => {
+    fetch(`${apiBase}/api/settings`)
+      .then(r => r.json())
+      .then(s => {
+        if (s) {
+          const list = [];
+          if (s.enableBTC !== false) list.push('BTC');
+          if (s.enableLTC !== false) list.push('LTC');
+          if (s.enableUSDT_TRC20) list.push('USDT_TRC20');
+          if (s.enableSOL) list.push('SOL');
+          if (s.enableETH) list.push('ETH');
+          if (s.enableTON) list.push('TON');
+          if (list.length > 0) {
+            setEnabledCoins(list);
+            setSelectedCrypto(prev => list.includes(prev) ? prev : list[0]);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [apiBase]);
 
   // Fetch real wallet address from backend when crypto changes
   React.useEffect(() => {
@@ -32,7 +55,7 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
       .then(r => r.json())
       .then(d => { if (d.address) setWalletAddress(d.address); })
       .catch(() => {});
-  }, [selectedCrypto]);
+  }, [selectedCrypto, apiBase]);
 
   React.useEffect(() => {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -189,7 +212,7 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
                 color: '#fff', border: '1px solid rgba(0,242,254,0.4)', fontSize: '13px', fontWeight: '700',
                 outline: 'none', cursor: 'pointer', boxSizing: 'border-box'
               }}>
-                {Object.keys(cryptoLabels).map(k => (
+                {enabledCoins.map(k => (
                   <option key={k} value={k} style={{ backgroundColor: '#161a22', color: '#fff' }}>
                     {cryptoIcons[k]} {cryptoLabels[k]}
                   </option>

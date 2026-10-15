@@ -21,7 +21,18 @@ export default function AdminDashboard() {
   const [passwordMsg, setPasswordMsg] = useState({ type: '', text: '' });
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-  const [settings, setSettings] = useState({ minDeposit: 20, depositBonusThreshold: 100, depositBonusPercentage: 20, adminEmail: 'vishalgiri0044@gmail.com' });
+  const [settings, setSettings] = useState({ 
+    minDeposit: 20, 
+    depositBonusThreshold: 100, 
+    depositBonusPercentage: 20, 
+    adminEmail: 'vishalgiri0044@gmail.com',
+    enableBTC: true,
+    enableLTC: true,
+    enableUSDT_TRC20: false,
+    enableSOL: false,
+    enableETH: false,
+    enableTON: false
+  });
   const [balanceModalUser, setBalanceModalUser] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
   const [balanceAction, setBalanceAction] = useState('add');
@@ -681,33 +692,106 @@ export default function AdminDashboard() {
                   <input type="email" required value={settings.adminEmail || ''} onChange={e => setSettings({...settings, adminEmail: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
                   <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#888' }}>The email address that receives the 6-digit 2FA code during Admin Login.</p>
                 </div>
-                <hr style={{ border: 'none', borderTop: '1px solid #333', margin: '10px 0' }} />
-                <h4 style={{ margin: '0', color: '#fff' }}>Crypto Wallet Addresses</h4>
+                <hr style={{ border: 'none', borderTop: '1px solid #333', margin: '14px 0' }} />
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>USDT (TRC20)</label>
-                  <input type="text" value={settings.walletUSDT_TRC20 || ''} onChange={e => setSettings({...settings, walletUSDT_TRC20: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+                  <h4 style={{ margin: '0 0 6px', color: '#fff', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <i className='bx bx-coin-stack' style={{ color: '#00f2fe' }}></i>
+                    Payment Coins & Wallet Addresses
+                  </h4>
+                  <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#888' }}>
+                    Turn individual cryptocurrencies ON or OFF to control which coins are available to users during checkout and deposits.
+                  </p>
                 </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>BTC (Bitcoin)</label>
-                  <input type="text" value={settings.walletBTC || ''} onChange={e => setSettings({...settings, walletBTC: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {[
+                    { key: 'BTC', label: 'Bitcoin (BTC)', icon: '₿', toggleField: 'enableBTC', walletField: 'walletBTC', color: '#f7931a' },
+                    { key: 'LTC', label: 'Litecoin (LTC)', icon: 'Ł', toggleField: 'enableLTC', walletField: 'walletLTC', color: '#345d9d' },
+                    { key: 'USDT_TRC20', label: 'USDT (TRC20)', icon: '₮', toggleField: 'enableUSDT_TRC20', walletField: 'walletUSDT_TRC20', color: '#26a17b' },
+                    { key: 'SOL', label: 'Solana (SOL)', icon: '◎', toggleField: 'enableSOL', walletField: 'walletSOL', color: '#14f195' },
+                    { key: 'ETH', label: 'Ethereum (ETH)', icon: 'Ξ', toggleField: 'enableETH', walletField: 'walletETH', color: '#627eea' },
+                    { key: 'TON', label: 'Toncoin (TON)', icon: '💎', toggleField: 'enableTON', walletField: 'walletTON', color: '#0098ea' },
+                  ].map(coin => {
+                    const isEnabled = settings[coin.toggleField] ?? (coin.key === 'BTC' || coin.key === 'LTC');
+                    return (
+                      <div
+                        key={coin.key}
+                        style={{
+                          backgroundColor: '#161920',
+                          border: `1px solid ${isEnabled ? 'rgba(0, 242, 254, 0.35)' : 'rgba(255, 255, 255, 0.08)'}`,
+                          borderRadius: '10px',
+                          padding: '16px',
+                          transition: 'all 0.2s ease',
+                          boxShadow: isEnabled ? '0 2px 10px rgba(0, 242, 254, 0.08)' : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              width: '34px', height: '34px', borderRadius: '50%',
+                              backgroundColor: `${coin.color}22`, color: coin.color,
+                              fontSize: '17px', fontWeight: 'bold'
+                            }}>
+                              {coin.icon}
+                            </span>
+                            <div>
+                              <div style={{ color: '#fff', fontWeight: '700', fontSize: '14px' }}>{coin.label}</div>
+                              <div style={{ fontSize: '12px', color: isEnabled ? '#4ade80' : '#888', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isEnabled ? '#4ade80' : '#666', display: 'inline-block' }}></span>
+                                {isEnabled ? 'Active (Visible to Users)' : 'Disabled (Hidden from Users)'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Toggle Checkbox Switch */}
+                          <label style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '8px',
+                            cursor: 'pointer', userSelect: 'none',
+                            padding: '6px 12px', borderRadius: '20px',
+                            backgroundColor: isEnabled ? 'rgba(0, 242, 254, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                            border: `1px solid ${isEnabled ? 'rgba(0, 242, 254, 0.4)' : '#333'}`
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={!!isEnabled}
+                              onChange={e => setSettings({ ...settings, [coin.toggleField]: e.target.checked })}
+                              style={{ width: '16px', height: '16px', accentColor: '#00f2fe', cursor: 'pointer' }}
+                            />
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: isEnabled ? '#00f2fe' : '#888' }}>
+                              {isEnabled ? 'TURNED ON' : 'TURNED OFF'}
+                            </span>
+                          </label>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '6px', color: '#aaa', fontSize: '12px' }}>
+                            Deposit Wallet Address
+                          </label>
+                          <input
+                            type="text"
+                            placeholder={`Enter ${coin.label} deposit address`}
+                            value={settings[coin.walletField] || ''}
+                            onChange={e => setSettings({ ...settings, [coin.walletField]: e.target.value })}
+                            style={{
+                              width: '100%',
+                              padding: '10px 12px',
+                              borderRadius: '6px',
+                              backgroundColor: '#101217',
+                              border: '1px solid #2a2e39',
+                              color: '#fff',
+                              outline: 'none',
+                              fontSize: '13px',
+                              fontFamily: 'monospace'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>LTC (Litecoin)</label>
-                  <input type="text" value={settings.walletLTC || ''} onChange={e => setSettings({...settings, walletLTC: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>SOL (Solana)</label>
-                  <input type="text" value={settings.walletSOL || ''} onChange={e => setSettings({...settings, walletSOL: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>ETH (Ethereum)</label>
-                  <input type="text" value={settings.walletETH || ''} onChange={e => setSettings({...settings, walletETH: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>TON (Toncoin)</label>
-                  <input type="text" value={settings.walletTON || ''} onChange={e => setSettings({...settings, walletTON: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
-                </div>
-                <button type="submit" style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Save Settings</button>
+
+                <button type="submit" style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', marginTop: '10px' }}>Save Settings</button>
               </form>
             </div>
           )}
