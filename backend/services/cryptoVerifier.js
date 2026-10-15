@@ -1,17 +1,23 @@
 const https = require('https');
 
+// Optional free key from blockcypher.com -> raises limit from ~200/hr to ~2000/hr
+const BC_TOKEN = process.env.BLOCKCYPHER_TOKEN ? `&token=${process.env.BLOCKCYPHER_TOKEN}` : '';
+
 // ─── Helper: fetch JSON from URL ─────────────────────────────────────────────
 function fetchJSON(url, headers = {}) {
     return new Promise((resolve, reject) => {
         const options = { headers: { 'User-Agent': 'FTID-PayVerifier/1.0', ...headers } };
-        https.get(url, options, (res) => {
+        const req = https.get(url, options, (res) => {
             let data = '';
             res.on('data', chunk => data += chunk);
             res.on('end', () => {
                 try { resolve(JSON.parse(data)); }
                 catch (e) { reject(new Error('JSON parse error: ' + data.slice(0, 100))); }
             });
-        }).on('error', reject);
+        });
+        req.on('error', reject);
+        // Timeout so one slow provider never blocks the fallback chain
+        req.setTimeout(8000, () => req.destroy(new Error('Request timeout: ' + url)));
     });
 }
 
@@ -190,7 +196,7 @@ async function verifyLTC(address, amountUSD) {
 
         // ── Provider 1: BlockCypher (Fast, supports bech32 ltc1q & unconfirmed mempool) ──
         try {
-            const bcData = await fetchJSON(`https://api.blockcypher.com/v1/ltc/main/addrs/${address}?limit=15`);
+            const bcData = await fetchJSON(`https://api.blockcypher.com/v1/ltc/main/addrs/${address}?limit=15${BC_TOKEN}`);
             if (bcData) {
                 // Check unconfirmed mempool transactions first (instant detection)
                 const unconfirmed = bcData.unconfirmed_txrefs || [];
@@ -338,7 +344,25 @@ async function verifyETH(address, amountUSD) {
 }
 
 // ─── Main verify dispatcher ───────────────────────────────────────────────────
+// 20s cache + in-flight dedupe: many users polling the same address share one API call
+const _cache = new Map();
+const _inflight = new Map();
+const CACHE_MS = 20000;
+
 async function verifyPayment(currency, address, amountUSD) {
+    const key = `${currency}|${address}|${amountUSD}`;
+    const hit = _cache.get(key);
+    if (hit && Date.now() - hit.t < CACHE_MS) return hit.v;
+    if (_inflight.has(key)) return _inflight.get(key);
+
+    const p = _verifyPaymentUncached(currency, address, amountUSD)
+        .then(v => { if (!v.error) _cache.set(key, { t: Date.now(), v }); return v; })
+        .finally(() => _inflight.delete(key));
+    _inflight.set(key, p);
+    return p;
+}
+
+async function _verifyPaymentUncached(currency, address, amountUSD) {
     console.log(`[CryptoVerifier] Checking ${currency} payment of $${amountUSD} to ${address}`);
     switch (currency) {
         case 'USDT_TRC20': return await verifyUSDT(address, amountUSD);
