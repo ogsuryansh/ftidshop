@@ -841,6 +841,7 @@ app.post('/api/orders', async (req, res) => {
         const orderData = { ...req.body };
         
         // If user pays with wallet balance
+        let remainingCredits = null;
         if (paymentMethod === 'Wallet Balance' && type !== 'deposit' && type !== 'Deposit') {
             const user = await User.findOneAndUpdate(
                 { _id: userId, credits: { $gte: price } },
@@ -854,6 +855,7 @@ app.post('/api/orders', async (req, res) => {
                 return res.status(400).json({ error: 'Insufficient wallet balance.' });
             }
             
+            remainingCredits = user.credits;
             orderData.paymentStatus = 'Paid';
             orderData.status = 'Pending';
         } else if (paymentCurrency) {
@@ -866,7 +868,11 @@ app.post('/api/orders', async (req, res) => {
         
         const newOrder = new Order(orderData);
         await newOrder.save();
-        res.json(newOrder);
+        const responseData = newOrder.toObject();
+        if (remainingCredits !== null) {
+            responseData.remainingCredits = remainingCredits;
+        }
+        res.json(responseData);
     } catch (err) { 
         console.error(err);
         res.status(500).json({ error: 'Server error: ' + err.message }); 

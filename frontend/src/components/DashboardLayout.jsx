@@ -2,25 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import DepositModal from './DepositModal';
 
-// Safe JSON parser — prevents crash when localStorage has "undefined" as a string
-function safeParseUser(raw) {
-  if (!raw || raw === 'undefined' || raw === 'null') return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
+import { useSyncUser, fetchLatestUserData } from '../utils/userSync';
 
 export default function DashboardLayout() {
-  const [user, setUser] = useState(() => safeParseUser(localStorage.getItem('user')));
+  const [user, setUser] = useSyncUser();
   const username = user ? user.name : 'Unknown';
-  const credits = user ? user.credits : 0;
+  const credits = user && typeof user.credits === 'number' ? user.credits : (user ? (Number(user.credits) || 0) : 0);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
 
   useEffect(() => {
-    const handleUserUpdated = () => {
-      setUser(safeParseUser(localStorage.getItem('user')));
+    // Immediate sync on layout mount
+    fetchLatestUserData();
+
+    // Re-sync whenever user focuses or returns to window
+    const handleFocus = () => fetchLatestUserData();
+    window.addEventListener('focus', handleFocus);
+
+    // Periodic live sync every 8 seconds for background changes (deposits, admin adjustments)
+    const interval = setInterval(() => {
+      fetchLatestUserData();
+    }, 8000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
     };
-    window.addEventListener('user-updated', handleUserUpdated);
-    return () => window.removeEventListener('user-updated', handleUserUpdated);
   }, []);
 
   const handleSignOut = () => {

@@ -2,13 +2,10 @@ import React, { useState, useEffect } from 'react';
 import PaymentModal from './PaymentModal';
 import API_BASE_URL from '../config';
 
-function safeParseUser(raw) {
-  if (!raw || raw === 'undefined' || raw === 'null') return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
+import { useSyncUser, fetchLatestUserData } from '../utils/userSync';
 
 export default function DepositModal({ onClose }) {
-  const user = safeParseUser(localStorage.getItem('user'));
+  const [user, setUser] = useSyncUser();
   const token = localStorage.getItem('token');
   
   const [settings, setSettings] = useState({ minDeposit: 20, depositBonusThreshold: 100, depositBonusPercentage: 20 });
@@ -64,21 +61,10 @@ export default function DepositModal({ onClose }) {
     }
   };
 
-  const handlePaymentSuccess = () => {
-    // refresh user data to get updated credits
-    fetch(`${API_BASE_URL}/api/user/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data._id) {
-          const updated = { ...user, credits: data.credits };
-          localStorage.setItem('user', JSON.stringify(updated));
-          window.dispatchEvent(new Event('user-updated'));
-        }
-        setCreatedOrder(null);
-        onClose();
-      });
+  const handlePaymentSuccess = async () => {
+    await fetchLatestUserData(token);
+    setCreatedOrder(null);
+    onClose();
   };
 
   return (

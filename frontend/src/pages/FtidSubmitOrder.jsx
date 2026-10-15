@@ -3,10 +3,7 @@ import PaymentModal from '../components/PaymentModal';
 import PrePaymentModal from '../components/PrePaymentModal';
 import API_BASE_URL from '../config';
 
-function safeParseUser(raw) {
-  if (!raw || raw === 'undefined' || raw === 'null') return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
+import { useSyncUser, setStoredUser, fetchLatestUserData } from '../utils/userSync';
 
 export default function FtidSubmitOrder() {
   const [country, setCountry] = useState('United States US');
@@ -23,7 +20,7 @@ export default function FtidSubmitOrder() {
   const [orderSuccessMsg, setOrderSuccessMsg] = useState('');
   const [pendingOrderData, setPendingOrderData] = useState(null); // holds order data before payment confirmed
 
-  const user = safeParseUser(localStorage.getItem('user'));
+  const [user, setUser] = useSyncUser();
 
   const [dbProducts, setDbProducts] = useState([]);
 
@@ -185,8 +182,12 @@ export default function FtidSubmitOrder() {
           setSubmitting(false);
           setLoadingTransition(false);
           if (res.ok) {
-            const updatedUser = { ...user, credits: user.credits - price };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
+            const newCredits = typeof data.remainingCredits === 'number'
+              ? data.remainingCredits
+              : (user ? user.credits - price : 0);
+            const updatedUser = { ...user, credits: newCredits };
+            setStoredUser(updatedUser);
+            fetchLatestUserData();
             setOrderSuccessMsg('Order paid successfully using Wallet Balance!');
             setTimeout(() => setOrderSuccessMsg(''), 3000);
             setTrackingNumber(''); setNote(''); setFileData(null);

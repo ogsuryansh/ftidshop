@@ -2,19 +2,15 @@ import React, { useState, useEffect } from 'react';
 import PaymentModal from '../components/PaymentModal';
 import API_BASE_URL from '../config';
 
-// Safe JSON parser — prevents crash when localStorage has "undefined" as a string
-function safeParseUser(raw) {
-  if (!raw || raw === 'undefined' || raw === 'null') return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
+import { useSyncUser, fetchLatestUserData, setStoredUser } from '../utils/userSync';
 
 export default function Dashboard() {
   const token = localStorage.getItem('token');
-  const [user, setUser] = useState(() => safeParseUser(localStorage.getItem('user')));
+  const [user, setUser] = useSyncUser();
   
   const username = user ? user.name : 'Unknown';
   const email = user ? user.email : 'unknown@domain.com';
-  const credits = user ? user.credits : 0;
+  const credits = user && typeof user.credits === 'number' ? user.credits : (user ? (Number(user.credits) || 0) : 0);
   const joinedDate = user && user.joined ? new Date(user.joined).toLocaleString() : 'N/A';
   const is2FAEnabled = !!(user && user.twoFactorEnabled);
 
@@ -34,19 +30,7 @@ export default function Dashboard() {
 
   // Refresh latest user profile from server
   useEffect(() => {
-    if (!token) return;
-    fetch(`${API_BASE_URL}/api/user/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data._id) {
-          data.id = data._id; // Ensure id is present for older components
-          setUser(data);
-          localStorage.setItem('user', JSON.stringify(data));
-        }
-      })
-      .catch(err => console.error('Error fetching latest user info:', err));
+    fetchLatestUserData(token);
   }, [token]);
 
   // Step 1: Start 2FA Setup
@@ -397,20 +381,7 @@ export default function Dashboard() {
           order={createdOrder} 
           onClose={() => setCreatedOrder(null)} 
           onPaymentConfirmed={() => {
-            // refresh user data to get updated credits
-            fetch(`${API_BASE_URL}/api/user/me`, {
-              headers: { Authorization: `Bearer ${token}` }
-            })
-              .then(res => res.json())
-              .then(data => {
-                if (data && data._id) {
-                  setUser(prev => {
-                    const updated = { ...prev, credits: data.credits };
-                    localStorage.setItem('user', JSON.stringify(updated));
-                    return updated;
-                  });
-                }
-              });
+            fetchLatestUserData(token);
           }}
         />
       )}
