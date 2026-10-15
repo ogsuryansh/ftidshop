@@ -265,10 +265,10 @@ app.post('/api/trybit/postback', async (req, res) => {
     }
 });
 
-// Which payment flow the frontend should use ('trybit' unless explicitly set to 'manual')
+// Which payment flow the frontend should use (default: 'manual')
 app.get('/api/payment/provider', (req, res) => {
-    const manual = process.env.PAYMENT_PROVIDER === 'manual' || !trybit.isConfigured();
-    res.json({ provider: manual ? 'manual' : 'trybit' });
+    const isTrybit = process.env.PAYMENT_PROVIDER === 'trybit';
+    res.json({ provider: isTrybit ? 'trybit' : 'manual' });
 });
 
 app.post('/api/register', async (req, res) => {
