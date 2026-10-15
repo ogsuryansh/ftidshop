@@ -15,15 +15,52 @@ function fetchJSON(url, headers = {}) {
     });
 }
 
-// ─── Get crypto price in USD from CoinGecko (FREE, no key) ───────────────────
+// ─── Get crypto price in USD (CoinGecko + Binance + CryptoCompare fallbacks) ──
 async function getCryptoPrice(coinId) {
+    // Try CoinGecko first
     try {
         const data = await fetchJSON(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd`);
-        return data[coinId]?.usd || null;
+        if (data && data[coinId]?.usd) return data[coinId].usd;
     } catch (e) {
-        console.error(`[CoinGecko] Price fetch failed for ${coinId}:`, e.message);
-        return null;
+        console.warn(`[CoinGecko] Price fetch failed for ${coinId}:`, e.message);
     }
+
+    // Fallback: Binance ticker
+    try {
+        const binanceMap = {
+            litecoin: 'LTCUSDT',
+            bitcoin: 'BTCUSDT',
+            solana: 'SOLUSDT',
+            ethereum: 'ETHUSDT'
+        };
+        const symbol = binanceMap[coinId];
+        if (symbol) {
+            const bData = await fetchJSON(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+            if (bData && bData.price) return parseFloat(bData.price);
+        }
+    } catch (e) {
+        console.warn(`[Binance] Price fetch failed for ${coinId}:`, e.message);
+    }
+
+    // Fallback: CryptoCompare
+    try {
+        const ccMap = {
+            litecoin: 'LTC',
+            bitcoin: 'BTC',
+            solana: 'SOL',
+            ethereum: 'ETH',
+            'the-open-network': 'TON'
+        };
+        const sym = ccMap[coinId];
+        if (sym) {
+            const ccData = await fetchJSON(`https://min-api.cryptocompare.com/data/price?fsym=${sym}&tsyms=USD`);
+            if (ccData && ccData.USD) return parseFloat(ccData.USD);
+        }
+    } catch (e) {
+        console.warn(`[CryptoCompare] Price fetch failed for ${coinId}:`, e.message);
+    }
+
+    return null;
 }
 
 // ─── USDT TRC20 Verification (TronGrid - FREE, no key) ───────────────────────
@@ -36,12 +73,12 @@ async function verifyUSDT(address, amountUSD) {
         if (!data.data || !Array.isArray(data.data)) return { verified: false };
 
         const expectedAmount = amountUSD * 1e6; // USDT has 6 decimals
-        const tolerance = 0.02;
+        const tolerance = 0.05; // 5% tolerance
 
         for (const tx of data.data) {
             const txAmount = parseFloat(tx.value);
             const diff = Math.abs(txAmount - expectedAmount) / expectedAmount;
-            if (tx.to === address && diff <= tolerance) {
+            if (tx.to === address && (diff <= tolerance || (txAmount >= expectedAmount * 0.95 && txAmount <= expectedAmount * 1.25))) {
                 return { verified: true, txHash: tx.transaction_id };
             }
         }
@@ -52,29 +89,50 @@ async function verifyUSDT(address, amountUSD) {
     }
 }
 
-// ─── BTC Verification (Blockstream Esplora - FREE, no key) ───────────────────
+// ─── BTC Verification (Blockstream + Mempool.space - Mempool + Confirmed) ────
 async function verifyBTC(address, amountUSD) {
     try {
         const btcPrice = await getCryptoPrice('bitcoin');
         if (!btcPrice) return { verified: false, error: 'Could not fetch BTC price' };
 
         const expectedSatoshis = (amountUSD / btcPrice) * 1e8;
-        const tolerance = 0.02;
+        const tolerance = 0.12; // 12% tolerance to absorb price shifts & exchange fees
 
-        const txs = await fetchJSON(`https://blockstream.info/api/address/${address}/txs`);
-        if (!Array.isArray(txs)) return { verified: false };
+        // Helper to match txs
+        const checkTxs = (txList) => {
+            if (!Array.isArray(txList)) return null;
+            for (const tx of txList) {
+                if (!tx || !Array.isArray(tx.vout)) continue;
+                const received = tx.vout
+                    .filter(o => o.scriptpubkey_address === address)
+                    .reduce((sum, o) => sum + (o.value || 0), 0);
 
-        for (const tx of txs) {
-            if (tx.status?.confirmed !== true) continue;
-            const received = tx.vout
-                .filter(o => o.scriptpubkey_address === address)
-                .reduce((sum, o) => sum + o.value, 0);
-
-            const diff = Math.abs(received - expectedSatoshis) / expectedSatoshis;
-            if (received > 0 && diff <= tolerance) {
-                return { verified: true, txHash: tx.txid };
+                const diff = Math.abs(received - expectedSatoshis) / expectedSatoshis;
+                if (received > 0 && (diff <= tolerance || (received >= expectedSatoshis * 0.88 && received <= expectedSatoshis * 1.35))) {
+                    return tx.txid;
+                }
             }
+            return null;
+        };
+
+        // Try Blockstream first
+        try {
+            const txs = await fetchJSON(`https://blockstream.info/api/address/${address}/txs`);
+            const matchedTx = checkTxs(txs);
+            if (matchedTx) return { verified: true, txHash: matchedTx };
+        } catch (e) {
+            console.warn('[BTC Blockstream failed, trying Mempool.space]:', e.message);
         }
+
+        // Fallback: Mempool.space
+        try {
+            const txs = await fetchJSON(`https://mempool.space/api/address/${address}/txs`);
+            const matchedTx = checkTxs(txs);
+            if (matchedTx) return { verified: true, txHash: matchedTx };
+        } catch (e) {
+            console.warn('[BTC Mempool.space failed]:', e.message);
+        }
+
         return { verified: false };
     } catch (e) {
         console.error('[BTC Verify]', e.message);
@@ -89,9 +147,8 @@ async function verifyTON(address, amountUSD) {
         if (!tonPrice) return { verified: false, error: 'Could not fetch TON price' };
 
         const expectedNano = (amountUSD / tonPrice) * 1e9;
-        const tolerance = 0.03;
+        const tolerance = 0.08;
 
-        // Use API key if available and valid, otherwise hit public endpoint without key
         const apiKey = process.env.TON_API_KEY && process.env.TON_API_KEY !== 'YOUR_TON_API_KEY_HERE'
             ? process.env.TON_API_KEY : null;
         const headers = apiKey ? { 'X-API-Key': apiKey } : {};
@@ -106,7 +163,7 @@ async function verifyTON(address, amountUSD) {
             if (!inMsg || inMsg.destination !== address) continue;
             const received = parseFloat(inMsg.value || 0);
             const diff = Math.abs(received - expectedNano) / expectedNano;
-            if (received > 0 && diff <= tolerance) {
+            if (received > 0 && (diff <= tolerance || (received >= expectedNano * 0.90 && received <= expectedNano * 1.30))) {
                 return { verified: true, txHash: tx.hash };
             }
         }
@@ -117,47 +174,78 @@ async function verifyTON(address, amountUSD) {
     }
 }
 
-// ─── LTC Verification (Blockchair - supports bech32 ltc1q addresses) ─────────
-// NOTE: BlockCypher does NOT support bech32 (ltc1q...) addresses. Blockchair does.
+// ─── LTC Verification (BlockCypher + Litecoinspace Mempool) ──────────────────
 async function verifyLTC(address, amountUSD) {
     try {
         const ltcPrice = await getCryptoPrice('litecoin');
         if (!ltcPrice) return { verified: false, error: 'Could not fetch LTC price' };
 
         const expectedLitoshi = (amountUSD / ltcPrice) * 1e8; // 1 LTC = 1e8 litoshi
-        const tolerance = 0.03;
+        const tolerance = 0.12; // 12% tolerance for price drift and fee handling
 
-        const data = await fetchJSON(`https://api.blockchair.com/litecoin/dashboards/address/${address}?limit=10`);
-        if (!data || !data.data || !data.data[address]) return { verified: false };
+        const isAmountMatch = (value) => {
+            const diff = Math.abs(value - expectedLitoshi) / expectedLitoshi;
+            return diff <= tolerance || (value >= expectedLitoshi * 0.88 && value <= expectedLitoshi * 1.35);
+        };
 
-        const addrData = data.data[address];
-
-        // Check UTXOs (unspent outputs sitting at the address)
-        const utxos = addrData.utxo || [];
-        for (const utxo of utxos) {
-            const diff = Math.abs(utxo.value - expectedLitoshi) / expectedLitoshi;
-            if (utxo.value > 0 && diff <= tolerance) {
-                return { verified: true, txHash: utxo.transaction_hash };
-            }
-        }
-
-        // Fall back: check last 5 transactions for matching output
-        const txList = (addrData.transactions || []).slice(0, 5);
-        for (const txHash of txList) {
-            try {
-                const txData = await fetchJSON(`https://api.blockchair.com/litecoin/dashboards/transaction/${txHash}`);
-                if (!txData || !txData.data || !txData.data[txHash]) continue;
-                const outputs = txData.data[txHash].outputs || [];
-                for (const out of outputs) {
-                    if (out.recipient === address) {
-                        const diff = Math.abs(out.value - expectedLitoshi) / expectedLitoshi;
-                        if (out.value > 0 && diff <= tolerance) {
-                            return { verified: true, txHash };
-                        }
+        // ── Provider 1: BlockCypher (Fast, supports bech32 ltc1q & unconfirmed mempool) ──
+        try {
+            const bcData = await fetchJSON(`https://api.blockcypher.com/v1/ltc/main/addrs/${address}?limit=15`);
+            if (bcData) {
+                // Check unconfirmed mempool transactions first (instant detection)
+                const unconfirmed = bcData.unconfirmed_txrefs || [];
+                for (const tx of unconfirmed) {
+                    if (tx.tx_input_n === -1 && isAmountMatch(tx.value)) {
+                        console.log(`[LTC Verify] Detected unconfirmed tx on BlockCypher: ${tx.tx_hash}`);
+                        return { verified: true, txHash: tx.tx_hash };
                     }
                 }
-            } catch { continue; }
+                // Check confirmed transactions
+                const confirmed = bcData.txrefs || [];
+                for (const tx of confirmed) {
+                    if (tx.tx_input_n === -1 && isAmountMatch(tx.value)) {
+                        console.log(`[LTC Verify] Detected confirmed tx on BlockCypher: ${tx.tx_hash}`);
+                        return { verified: true, txHash: tx.tx_hash };
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('[LTC Verify] BlockCypher check failed, trying Litecoinspace:', err.message);
         }
+
+        // ── Provider 2: Litecoinspace.org (Dedicated Mempool/Esplora instance for LTC) ──
+        try {
+            const txs = await fetchJSON(`https://litecoinspace.org/api/address/${address}/txs`);
+            if (Array.isArray(txs)) {
+                for (const tx of txs) {
+                    if (!tx || !Array.isArray(tx.vout)) continue;
+                    const received = tx.vout
+                        .filter(o => o.scriptpubkey_address === address)
+                        .reduce((sum, o) => sum + (o.value || 0), 0);
+
+                    if (received > 0 && isAmountMatch(received)) {
+                        console.log(`[LTC Verify] Detected tx on Litecoinspace: ${tx.txid}`);
+                        return { verified: true, txHash: tx.txid };
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn('[LTC Verify] Litecoinspace check failed:', err.message);
+        }
+
+        // ── Provider 3: Blockchair fallback ──
+        try {
+            const data = await fetchJSON(`https://api.blockchair.com/litecoin/dashboards/address/${address}?limit=10`);
+            if (data && data.data && data.data[address]) {
+                const addrData = data.data[address];
+                const utxos = addrData.utxo || [];
+                for (const utxo of utxos) {
+                    if (utxo.value > 0 && isAmountMatch(utxo.value)) {
+                        return { verified: true, txHash: utxo.transaction_hash };
+                    }
+                }
+            }
+        } catch {}
 
         return { verified: false };
     } catch (e) {
