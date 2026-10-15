@@ -204,10 +204,14 @@ export default function FtidSubmitOrder() {
       return;
     }
 
-    // For Crypto: store order data in state and open payment modal (do NOT save to DB yet)
+    // For Crypto: store order data in state with small random cents (e.g. $30.07) for 100% unique auto-matching
+    const randomCents = (Math.floor(Math.random() * 47) + 3) / 100;
+    const uniquePrice = Number((price + randomCents).toFixed(2));
+
     setPendingOrderData({
       userId: user._id || user.id,
-      type: 'FTID', country, courier, method, trackingNumber, note, fileData, price,
+      type: 'FTID', country, courier, method, trackingNumber, note, fileData,
+      price: uniquePrice,
       paymentMethod: 'Crypto'
     });
   };

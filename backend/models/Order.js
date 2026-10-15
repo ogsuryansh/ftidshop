@@ -15,6 +15,7 @@ const orderSchema = new mongoose.Schema({
     // Crypto payment verification fields
     paymentCurrency: { type: String, enum: ['USDT_TRC20', 'BTC', 'LTC', 'SOL', 'ETH', 'TON'], default: null },
     paymentAddress: { type: String, default: null }, // wallet address shown to user
+    expectedCrypto: { type: Number, default: null }, // exact crypto amount expected
     txHash: { type: String, default: null }, // confirmed transaction hash
     verificationAttempts: { type: Number, default: 0 },
     lastChecked: { type: Date, default: null },

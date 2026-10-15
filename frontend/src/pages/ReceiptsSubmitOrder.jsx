@@ -111,6 +111,10 @@ export default function ReceiptsSubmitOrder() {
       return;
     }
 
+    // For Crypto: store order data in state with small random cents (e.g. $15.07) for 100% unique auto-matching
+    const randomCents = (Math.floor(Math.random() * 47) + 3) / 100;
+    const uniquePrice = Number((price + randomCents).toFixed(2));
+
     setPendingOrderData({
       userId: user._id || user.id,
       type: 'Receipt',
@@ -118,7 +122,7 @@ export default function ReceiptsSubmitOrder() {
       method: category,
       note,
       fileData,
-      price,
+      price: uniquePrice,
       paymentMethod: 'Crypto'
     });
   };

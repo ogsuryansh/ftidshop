@@ -37,7 +37,8 @@ async function getCryptoPrice(coinId) {
             litecoin: 'LTCUSDT',
             bitcoin: 'BTCUSDT',
             solana: 'SOLUSDT',
-            ethereum: 'ETHUSDT'
+            ethereum: 'ETHUSDT',
+            'the-open-network': 'TONUSDT'
         };
         const symbol = binanceMap[coinId];
         if (symbol) {
@@ -69,8 +70,59 @@ async function getCryptoPrice(coinId) {
     return null;
 }
 
+// In-memory cache for live coin rates (30s cache)
+const rateCache = new Map();
+const RATE_CACHE_MS = 30000;
+
+async function getCoinRate(currency) {
+    if (currency === 'USDT_TRC20') {
+        return { currency, priceUSD: 1.0 };
+    }
+    const hit = rateCache.get(currency);
+    if (hit && Date.now() - hit.t < RATE_CACHE_MS) {
+        return { currency, priceUSD: hit.priceUSD };
+    }
+
+    const coinMap = {
+        BTC: 'bitcoin',
+        LTC: 'litecoin',
+        SOL: 'solana',
+        ETH: 'ethereum',
+        TON: 'the-open-network'
+    };
+    const coinId = coinMap[currency];
+    if (!coinId) return { currency, priceUSD: null };
+
+    const price = await getCryptoPrice(coinId);
+    if (price && typeof price === 'number') {
+        rateCache.set(currency, { t: Date.now(), priceUSD: price });
+        return { currency, priceUSD: price };
+    }
+    return { currency, priceUSD: null };
+}
+
+function formatCryptoAmount(amountUSD, priceUSD, currency) {
+    if (!priceUSD || priceUSD <= 0 || !amountUSD) return null;
+    const raw = Number(amountUSD) / Number(priceUSD);
+    switch (currency) {
+        case 'BTC':
+            return Number(raw.toFixed(6));
+        case 'LTC':
+            return Number(raw.toFixed(4));
+        case 'ETH':
+            return Number(raw.toFixed(5));
+        case 'SOL':
+            return Number(raw.toFixed(4));
+        case 'TON':
+            return Number(raw.toFixed(4));
+        case 'USDT_TRC20':
+        default:
+            return Number(Number(amountUSD).toFixed(2));
+    }
+}
+
 // ─── USDT TRC20 Verification (TronGrid - FREE, no key) ───────────────────────
-async function verifyUSDT(address, amountUSD) {
+async function verifyUSDT(address, amountUSD, expectedCrypto) {
     try {
         const contractAddr = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
         const url = `https://api.trongrid.io/v1/accounts/${address}/transactions/trc20?contract_address=${contractAddr}&limit=20&only_confirmed=true`;
@@ -78,13 +130,13 @@ async function verifyUSDT(address, amountUSD) {
 
         if (!data.data || !Array.isArray(data.data)) return { verified: false };
 
-        const expectedAmount = amountUSD * 1e6; // USDT has 6 decimals
-        const tolerance = 0.05; // 5% tolerance
+        const targetAmount = (expectedCrypto || amountUSD) * 1e6; // USDT has 6 decimals
+        const tolerance = 0.008; // 0.8% tolerance for exact cent matching
 
         for (const tx of data.data) {
             const txAmount = parseFloat(tx.value);
-            const diff = Math.abs(txAmount - expectedAmount) / expectedAmount;
-            if (tx.to === address && (diff <= tolerance || (txAmount >= expectedAmount * 0.95 && txAmount <= expectedAmount * 1.25))) {
+            const diff = Math.abs(txAmount - targetAmount) / targetAmount;
+            if (tx.to === address && (diff <= tolerance || Math.abs(txAmount - targetAmount) <= 10000)) {
                 return { verified: true, txHash: tx.transaction_id };
             }
         }
@@ -96,13 +148,13 @@ async function verifyUSDT(address, amountUSD) {
 }
 
 // ─── BTC Verification (Blockstream + Mempool.space - Mempool + Confirmed) ────
-async function verifyBTC(address, amountUSD) {
+async function verifyBTC(address, amountUSD, expectedCrypto) {
     try {
         const btcPrice = await getCryptoPrice('bitcoin');
-        if (!btcPrice) return { verified: false, error: 'Could not fetch BTC price' };
+        if (!btcPrice && !expectedCrypto) return { verified: false, error: 'Could not fetch BTC price' };
 
-        const expectedSatoshis = (amountUSD / btcPrice) * 1e8;
-        const tolerance = 0.12; // 12% tolerance to absorb price shifts & exchange fees
+        const targetSatoshis = expectedCrypto ? Math.round(expectedCrypto * 1e8) : null;
+        const marketSatoshis = btcPrice ? (amountUSD / btcPrice) * 1e8 : null;
 
         // Helper to match txs
         const checkTxs = (txList) => {
@@ -113,9 +165,15 @@ async function verifyBTC(address, amountUSD) {
                     .filter(o => o.scriptpubkey_address === address)
                     .reduce((sum, o) => sum + (o.value || 0), 0);
 
-                const diff = Math.abs(received - expectedSatoshis) / expectedSatoshis;
-                if (received > 0 && (diff <= tolerance || (received >= expectedSatoshis * 0.88 && received <= expectedSatoshis * 1.35))) {
-                    return tx.txid;
+                if (received > 0) {
+                    if (targetSatoshis) {
+                        const diff = Math.abs(received - targetSatoshis) / targetSatoshis;
+                        if (diff <= 0.018) return tx.txid; // tight 1.8% match for unique random cents
+                    }
+                    if (marketSatoshis) {
+                        const diff = Math.abs(received - marketSatoshis) / marketSatoshis;
+                        if (diff <= 0.05) return tx.txid;
+                    }
                 }
             }
             return null;
@@ -147,13 +205,13 @@ async function verifyBTC(address, amountUSD) {
 }
 
 // ─── TON Verification (TON Center - works without API key) ───────────────────
-async function verifyTON(address, amountUSD) {
+async function verifyTON(address, amountUSD, expectedCrypto) {
     try {
         const tonPrice = await getCryptoPrice('the-open-network');
-        if (!tonPrice) return { verified: false, error: 'Could not fetch TON price' };
+        if (!tonPrice && !expectedCrypto) return { verified: false, error: 'Could not fetch TON price' };
 
-        const expectedNano = (amountUSD / tonPrice) * 1e9;
-        const tolerance = 0.08;
+        const targetNano = expectedCrypto ? Math.round(expectedCrypto * 1e9) : null;
+        const marketNano = tonPrice ? (amountUSD / tonPrice) * 1e9 : null;
 
         const apiKey = process.env.TON_API_KEY && process.env.TON_API_KEY !== 'YOUR_TON_API_KEY_HERE'
             ? process.env.TON_API_KEY : null;
@@ -168,9 +226,15 @@ async function verifyTON(address, amountUSD) {
             const inMsg = tx.in_msg;
             if (!inMsg || inMsg.destination !== address) continue;
             const received = parseFloat(inMsg.value || 0);
-            const diff = Math.abs(received - expectedNano) / expectedNano;
-            if (received > 0 && (diff <= tolerance || (received >= expectedNano * 0.90 && received <= expectedNano * 1.30))) {
-                return { verified: true, txHash: tx.hash };
+            if (received > 0) {
+                if (targetNano) {
+                    const diff = Math.abs(received - targetNano) / targetNano;
+                    if (diff <= 0.018) return { verified: true, txHash: tx.hash };
+                }
+                if (marketNano) {
+                    const diff = Math.abs(received - marketNano) / marketNano;
+                    if (diff <= 0.05) return { verified: true, txHash: tx.hash };
+                }
             }
         }
         return { verified: false };
@@ -181,17 +245,24 @@ async function verifyTON(address, amountUSD) {
 }
 
 // ─── LTC Verification (BlockCypher + Litecoinspace Mempool) ──────────────────
-async function verifyLTC(address, amountUSD) {
+async function verifyLTC(address, amountUSD, expectedCrypto) {
     try {
         const ltcPrice = await getCryptoPrice('litecoin');
-        if (!ltcPrice) return { verified: false, error: 'Could not fetch LTC price' };
+        if (!ltcPrice && !expectedCrypto) return { verified: false, error: 'Could not fetch LTC price' };
 
-        const expectedLitoshi = (amountUSD / ltcPrice) * 1e8; // 1 LTC = 1e8 litoshi
-        const tolerance = 0.12; // 12% tolerance for price drift and fee handling
+        const targetLitoshi = expectedCrypto ? Math.round(expectedCrypto * 1e8) : null;
+        const marketLitoshi = ltcPrice ? (amountUSD / ltcPrice) * 1e8 : null;
 
         const isAmountMatch = (value) => {
-            const diff = Math.abs(value - expectedLitoshi) / expectedLitoshi;
-            return diff <= tolerance || (value >= expectedLitoshi * 0.88 && value <= expectedLitoshi * 1.35);
+            if (targetLitoshi) {
+                const diff = Math.abs(value - targetLitoshi) / targetLitoshi;
+                if (diff <= 0.018) return true; // tight 1.8% match for unique random cents
+            }
+            if (marketLitoshi) {
+                const diff = Math.abs(value - marketLitoshi) / marketLitoshi;
+                if (diff <= 0.05) return true; // 5% tolerance fallback
+            }
+            return false;
         };
 
         // ── Provider 1: BlockCypher (Fast, supports bech32 ltc1q & unconfirmed mempool) ──
@@ -261,7 +332,7 @@ async function verifyLTC(address, amountUSD) {
 }
 
 // ─── SOL Verification (Helius API) ───────────────────────────────────────────
-async function verifySOL(address, amountUSD) {
+async function verifySOL(address, amountUSD, expectedCrypto) {
     const apiKey = process.env.SOL_API_KEY;
     if (!apiKey) {
         console.warn('[SOL Verify] No SOL_API_KEY set in .env');
@@ -270,11 +341,9 @@ async function verifySOL(address, amountUSD) {
 
     try {
         const solPrice = await getCryptoPrice('solana');
-        if (!solPrice) return { verified: false, error: 'Could not fetch SOL price' };
+        if (!solPrice && !expectedCrypto) return { verified: false, error: 'Could not fetch SOL price' };
 
-        const expectedSol = amountUSD / solPrice;
-        const tolerance = 0.03; // 3% tolerance
-
+        const targetSol = expectedCrypto || (solPrice ? amountUSD / solPrice : null);
         const url = `https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${apiKey}`;
         const data = await fetchJSON(url);
 
@@ -291,9 +360,11 @@ async function verifySOL(address, amountUSD) {
                 }
             }
             
-            const diff = Math.abs(solReceived - expectedSol) / expectedSol;
-            if (solReceived > 0 && diff <= tolerance) {
-                return { verified: true, txHash: tx.signature };
+            if (solReceived > 0 && targetSol) {
+                const diff = Math.abs(solReceived - targetSol) / targetSol;
+                if (diff <= (expectedCrypto ? 0.018 : 0.04)) {
+                    return { verified: true, txHash: tx.signature };
+                }
             }
         }
 
@@ -305,7 +376,7 @@ async function verifySOL(address, amountUSD) {
 }
 
 // ─── ETH Verification (Etherscan API) ─────────────────────────────────────────
-async function verifyETH(address, amountUSD) {
+async function verifyETH(address, amountUSD, expectedCrypto) {
     const apiKey = process.env.ETH_API_KEY;
     if (!apiKey) {
         console.warn('[ETH Verify] No ETH_API_KEY set in .env');
@@ -314,10 +385,9 @@ async function verifyETH(address, amountUSD) {
 
     try {
         const ethPrice = await getCryptoPrice('ethereum');
-        if (!ethPrice) return { verified: false, error: 'Could not fetch ETH price' };
+        if (!ethPrice && !expectedCrypto) return { verified: false, error: 'Could not fetch ETH price' };
 
-        const expectedWei = (amountUSD / ethPrice) * 1e18;
-        const tolerance = 0.03; // 3% tolerance
+        const targetWei = expectedCrypto ? (expectedCrypto * 1e18) : (ethPrice ? (amountUSD / ethPrice) * 1e18 : null);
 
         // Check last 5 transactions
         const url = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&page=1&offset=5&sort=desc&apikey=${apiKey}`;
@@ -329,10 +399,11 @@ async function verifyETH(address, amountUSD) {
             // Check if transaction is incoming to the address
             if (tx.to && tx.to.toLowerCase() === address.toLowerCase()) {
                 const receivedWei = parseFloat(tx.value);
-                const diff = Math.abs(receivedWei - expectedWei) / expectedWei;
-                
-                if (receivedWei > 0 && diff <= tolerance) {
-                    return { verified: true, txHash: tx.hash };
+                if (receivedWei > 0 && targetWei) {
+                    const diff = Math.abs(receivedWei - targetWei) / targetWei;
+                    if (diff <= (expectedCrypto ? 0.018 : 0.04)) {
+                        return { verified: true, txHash: tx.hash };
+                    }
                 }
             }
         }
@@ -349,30 +420,35 @@ const _cache = new Map();
 const _inflight = new Map();
 const CACHE_MS = 20000;
 
-async function verifyPayment(currency, address, amountUSD) {
-    const key = `${currency}|${address}|${amountUSD}`;
+async function verifyPayment(currency, address, amountUSD, expectedCrypto = null) {
+    const key = `${currency}|${address}|${amountUSD}|${expectedCrypto || ''}`;
     const hit = _cache.get(key);
     if (hit && Date.now() - hit.t < CACHE_MS) return hit.v;
     if (_inflight.has(key)) return _inflight.get(key);
 
-    const p = _verifyPaymentUncached(currency, address, amountUSD)
+    const p = _verifyPaymentUncached(currency, address, amountUSD, expectedCrypto)
         .then(v => { if (!v.error) _cache.set(key, { t: Date.now(), v }); return v; })
         .finally(() => _inflight.delete(key));
     _inflight.set(key, p);
     return p;
 }
 
-async function _verifyPaymentUncached(currency, address, amountUSD) {
-    console.log(`[CryptoVerifier] Checking ${currency} payment of $${amountUSD} to ${address}`);
+async function _verifyPaymentUncached(currency, address, amountUSD, expectedCrypto) {
+    console.log(`[CryptoVerifier] Checking ${currency} payment of $${amountUSD} (expectedCrypto: ${expectedCrypto || 'auto'}) to ${address}`);
     switch (currency) {
-        case 'USDT_TRC20': return await verifyUSDT(address, amountUSD);
-        case 'BTC':        return await verifyBTC(address, amountUSD);
-        case 'LTC':        return await verifyLTC(address, amountUSD);
-        case 'SOL':        return await verifySOL(address, amountUSD);
-        case 'ETH':        return await verifyETH(address, amountUSD);
-        case 'TON':        return await verifyTON(address, amountUSD);
+        case 'USDT_TRC20': return await verifyUSDT(address, amountUSD, expectedCrypto);
+        case 'BTC':        return await verifyBTC(address, amountUSD, expectedCrypto);
+        case 'LTC':        return await verifyLTC(address, amountUSD, expectedCrypto);
+        case 'SOL':        return await verifySOL(address, amountUSD, expectedCrypto);
+        case 'ETH':        return await verifyETH(address, amountUSD, expectedCrypto);
+        case 'TON':        return await verifyTON(address, amountUSD, expectedCrypto);
         default:           return { verified: false, error: 'Unknown currency' };
     }
 }
 
-module.exports = { verifyPayment };
+module.exports = {
+    verifyPayment,
+    getCryptoPrice,
+    getCoinRate,
+    formatCryptoAmount
+};

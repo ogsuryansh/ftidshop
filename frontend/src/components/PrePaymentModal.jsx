@@ -10,6 +10,8 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
   const [txHash, setTxHash] = React.useState('');
   const [copied, setCopied] = React.useState('');
   const [showQR, setShowQR] = React.useState(false);
+  const [cryptoRate, setCryptoRate] = React.useState(null);
+  const [cryptoAmount, setCryptoAmount] = React.useState(null);
   const pollRef = React.useRef(null);
   const isCheckingRef = React.useRef(false);
 
@@ -24,6 +26,20 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
 
   const cryptoLabels = { BTC: 'Bitcoin (BTC)', LTC: 'Litecoin (LTC)', USDT_TRC20: 'USDT (TRC20)', SOL: 'Solana (SOL)', ETH: 'Ethereum (ETH)', TON: 'TON' };
   const cryptoIcons = { BTC: '₿', LTC: 'Ł', USDT_TRC20: '₮', SOL: '◎', ETH: 'Ξ', TON: '💎' };
+
+  const formatCrypto = (amountUSD, priceUSD, currency) => {
+    if (!priceUSD || priceUSD <= 0 || !amountUSD) return null;
+    const raw = Number(amountUSD) / Number(priceUSD);
+    switch (currency) {
+      case 'BTC': return Number(raw.toFixed(6));
+      case 'LTC': return Number(raw.toFixed(4));
+      case 'ETH': return Number(raw.toFixed(5));
+      case 'SOL': return Number(raw.toFixed(4));
+      case 'TON': return Number(raw.toFixed(4));
+      case 'USDT_TRC20':
+      default: return Number(Number(amountUSD).toFixed(2));
+    }
+  };
 
   // Fetch enabled coins from settings
   React.useEffect(() => {
@@ -47,15 +63,29 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
       .catch(() => {});
   }, [apiBase]);
 
-  // Fetch real wallet address from backend when crypto changes
+  // Fetch real wallet address and live rate from backend when crypto changes
   React.useEffect(() => {
     setWalletAddress(defaultAddresses[selectedCrypto] || '');
     setCheckStatus('idle');
+
     fetch(`${apiBase}/api/payment/address/${selectedCrypto}`)
       .then(r => r.json())
       .then(d => { if (d.address) setWalletAddress(d.address); })
       .catch(() => {});
-  }, [selectedCrypto, apiBase]);
+
+    if (orderData && orderData.price) {
+      fetch(`${apiBase}/api/payment/rate/${selectedCrypto}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.priceUSD) {
+            setCryptoRate(data.priceUSD);
+            const formatted = formatCrypto(orderData.price, data.priceUSD, selectedCrypto);
+            setCryptoAmount(formatted);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [selectedCrypto, apiBase, orderData?.price]);
 
   React.useEffect(() => {
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
@@ -80,7 +110,12 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
       const res = await fetch(`${apiBase}/api/verify-payment/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currency: selectedCrypto, address: displayAddress, amount: orderData.price })
+        body: JSON.stringify({
+          currency: selectedCrypto,
+          address: displayAddress,
+          amount: orderData.price,
+          expectedCrypto: cryptoAmount
+        })
       });
       const data = await res.json();
       setAttempts(a => a + 1);
@@ -97,6 +132,7 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
             status: 'Pending',
             paymentCurrency: selectedCrypto,
             paymentAddress: displayAddress,
+            expectedCrypto: cryptoAmount,
             txHash: data.txHash || ''
           })
         });
@@ -116,7 +152,7 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
     } finally {
       isCheckingRef.current = false;
     }
-  }, [selectedCrypto, displayAddress, orderData, checkStatus, apiBase, onPaymentConfirmed]);
+  }, [selectedCrypto, displayAddress, orderData, checkStatus, apiBase, onPaymentConfirmed, cryptoAmount]);
 
   const startPolling = () => {
     if (pollRef.current) return;
@@ -200,7 +236,16 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#fff', fontWeight: '600' }}>Amount Due:</span>
-                <span style={{ color: '#00f2fe', fontSize: '18px', fontWeight: '800' }}>${orderData.price} USD</span>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ color: '#00f2fe', fontSize: '18px', fontWeight: '800' }}>
+                    ${Number(orderData.price).toFixed(2)} USD
+                  </div>
+                  {cryptoAmount && (
+                    <div style={{ color: '#4ade80', fontSize: '12px', fontWeight: '700', marginTop: '2px' }}>
+                      ≈ {cryptoAmount} {selectedCrypto}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -218,6 +263,56 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Exact Amount To Send Box with 1-Click Copy */}
+            <div style={{
+              backgroundColor: '#0a0c10',
+              border: '1px solid rgba(0, 242, 254, 0.35)',
+              borderRadius: '12px', padding: '12px', marginBottom: '12px',
+              boxShadow: '0 4px 15px rgba(0, 242, 254, 0.08)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: '#8a94a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Exact Amount to Send ({selectedCrypto})
+                </span>
+                {copied === 'amount' && (
+                  <span style={{ fontSize: '10px', color: '#48a464', fontWeight: '700' }}>
+                    ✓ Amount Copied!
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{
+                  flex: 1, backgroundColor: '#141820', border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '8px', padding: '10px', color: '#4ade80',
+                  fontFamily: 'monospace', fontSize: '15px', fontWeight: '800', textAlign: 'center',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)', userSelect: 'all'
+                }}>
+                  {cryptoAmount ? `${cryptoAmount} ${selectedCrypto}` : `$${Number(orderData.price).toFixed(2)} USD`}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopy(cryptoAmount ? cryptoAmount.toString() : Number(orderData.price).toFixed(2), 'amount')}
+                  style={{
+                    padding: '10px 14px',
+                    background: copied === 'amount'
+                      ? 'linear-gradient(135deg, #48a464, #2e7d32)'
+                      : 'linear-gradient(135deg, #00f2fe, #7f00ff)',
+                    color: '#ffffff', border: 'none', borderRadius: '8px',
+                    cursor: 'pointer', fontWeight: '700', fontSize: '12px',
+                    display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap'
+                  }}
+                >
+                  {copied === 'amount' ? '✔ Copied' : '📋 Copy Amount'}
+                </button>
+              </div>
+              
+              <div style={{ fontSize: '10px', color: '#8a94a6', marginTop: '6px', textAlign: 'center' }}>
+                💡 Send exact amount above. Small random cents guarantee instant, 100% automated matching.
+              </div>
             </div>
 
             {/* QR */}
@@ -264,7 +359,7 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
             )}
 
             <div style={{ fontSize: '10px', color: '#8a94a6', lineHeight: '1.4', marginBottom: '14px', padding: '8px 10px', borderRadius: '8px', borderLeft: '3px solid #00f2fe', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-              📌 Send exactly <strong>${orderData.price} USD</strong> in {cryptoLabels[selectedCrypto]}. Your order will be placed automatically after blockchain confirms.
+              📌 Send exact amount of <strong>{cryptoAmount ? `${cryptoAmount} ${selectedCrypto}` : `$${Number(orderData.price).toFixed(2)} USD`}</strong> (${Number(orderData.price).toFixed(2)} USD). Your order will be placed automatically after blockchain confirms.
             </div>
 
             <button type="button" onClick={startPolling} disabled={checkStatus === 'checking' || !displayAddress} style={{

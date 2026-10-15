@@ -15,7 +15,7 @@ const Admin = require('./models/Admin');
 const Order = require('./models/Order');
 const Product = require('./models/Product');
 const Settings = require('./models/Settings');
-const { verifyPayment } = require('./services/cryptoVerifier');
+const { verifyPayment, getCoinRate, formatCryptoAmount } = require('./services/cryptoVerifier');
 
 // ─── Wallet addresses helper ──────────────────────────────────────────
 async function getWalletAddresses() {
@@ -841,12 +841,53 @@ app.delete('/api/admin/products/:id', authAdmin, async (req, res) => {
     }
 });
 
+// ─── Helper: Unique random cents discriminator for foolproof matching ─────────
+async function getUniqueOrderPrice(basePrice) {
+    const minCents = 2;
+    const maxCents = 89;
+    const base = Math.floor(Number(basePrice) || 15);
+
+    try {
+        const activeOrders = await Order.find({
+            paymentStatus: 'Pending Payment',
+            price: { $gte: base, $lt: base + 1 }
+        }).select('price');
+
+        const usedCents = new Set(activeOrders.map(o => Math.round((o.price - base) * 100)));
+
+        for (let attempt = 0; attempt < 50; attempt++) {
+            const cent = Math.floor(Math.random() * (maxCents - minCents + 1)) + minCents;
+            if (!usedCents.has(cent)) {
+                return Number((base + cent / 100).toFixed(2));
+            }
+        }
+    } catch (err) {
+        console.error('[UniquePrice] Error querying active orders:', err.message);
+    }
+    const fallbackCent = ((Date.now() % 80) + 10) / 100;
+    return Number((base + fallbackCent).toFixed(2));
+}
+
 // User Order endpoints
 app.post('/api/orders', async (req, res) => {
     try {
-        const { paymentCurrency, paymentMethod, price, userId, type } = req.body;
+        const { paymentCurrency, paymentMethod, price, userId, type, expectedCrypto } = req.body;
         const orderData = { ...req.body };
         
+        // Ensure small unique random cents for crypto payments & deposits to guarantee 100% collision-free matching
+        const isCryptoOrDeposit = (paymentMethod === 'Crypto' || type === 'deposit' || type === 'Deposit');
+        if (isCryptoOrDeposit) {
+            const currentPrice = Number(orderData.price) || 15;
+            // If it's a whole round dollar or needs collision check
+            if (Number.isInteger(currentPrice) || (currentPrice * 100) % 1 === 0) {
+                orderData.price = await getUniqueOrderPrice(currentPrice);
+            }
+        }
+
+        if (expectedCrypto) {
+            orderData.expectedCrypto = Number(expectedCrypto);
+        }
+
         // If user pays with wallet balance
         let remainingCredits = null;
         if (paymentMethod === 'Wallet Balance' && type !== 'deposit' && type !== 'Deposit') {
@@ -888,14 +929,17 @@ app.post('/api/orders', async (req, res) => {
 
 app.put('/api/orders/:orderId/currency', async (req, res) => {
     try {
-        const { paymentCurrency } = req.body;
+        const { paymentCurrency, expectedCrypto } = req.body;
         const walletAddresses = await getWalletAddresses();
         const address = walletAddresses[paymentCurrency];
         if (!address) return res.status(400).json({ error: 'Unsupported currency' });
         
+        const updateFields = { paymentCurrency, paymentAddress: address };
+        if (expectedCrypto) updateFields.expectedCrypto = Number(expectedCrypto);
+
         const updated = await Order.findByIdAndUpdate(
             req.params.orderId,
-            { paymentCurrency, paymentAddress: address },
+            updateFields,
             { new: true }
         );
         res.json(updated);
@@ -913,6 +957,31 @@ app.get('/api/orders/:userId', async (req, res) => {
 
 // ─── Payment verification endpoints ──────────────────────────────────────────
 
+// GET live exchange rate for selected cryptocurrency
+app.get('/api/payment/rate/:currency', async (req, res) => {
+    try {
+        const { currency } = req.params;
+        const rate = await getCoinRate(currency);
+        if (!rate || !rate.priceUSD) {
+            return res.status(404).json({ error: 'Rate unavailable for ' + currency });
+        }
+        res.json(rate);
+    } catch (err) {
+        res.status(500).json({ error: 'Server error fetching rate' });
+    }
+});
+
+// GET unique price with small random cents for 100% foolproof instant auto-matching
+app.get('/api/payment/unique-price', async (req, res) => {
+    try {
+        const base = parseFloat(req.query.base) || 15;
+        const price = await getUniqueOrderPrice(base);
+        res.json({ price, base });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error generating price' });
+    }
+});
+
 // GET wallet address for selected currency
 app.get('/api/payment/address/:currency', async (req, res) => {
     const { currency } = req.params;
@@ -925,11 +994,11 @@ app.get('/api/payment/address/:currency', async (req, res) => {
 // Check if a payment was received on an address WITHOUT an existing order (pre-order verification)
 app.post('/api/verify-payment/check', async (req, res) => {
     try {
-        const { currency, address, amount } = req.body;
+        const { currency, address, amount, expectedCrypto } = req.body;
         if (!currency || !address || !amount) {
             return res.status(400).json({ error: 'currency, address, and amount are required' });
         }
-        const result = await verifyPayment(currency, address, Number(amount));
+        const result = await verifyPayment(currency, address, Number(amount), expectedCrypto ? Number(expectedCrypto) : null);
         
         if (result.verified && result.txHash) {
              const existingOrder = await Order.findOne({ txHash: result.txHash });
@@ -945,7 +1014,6 @@ app.post('/api/verify-payment/check', async (req, res) => {
     }
 });
 
-
 // Manually trigger payment check for a specific order
 app.post('/api/verify-payment/:orderId', async (req, res) => {
     try {
@@ -956,7 +1024,7 @@ app.post('/api/verify-payment/:orderId', async (req, res) => {
             return res.status(400).json({ error: 'Order has no payment currency/address set' });
         }
 
-        const result = await verifyPayment(order.paymentCurrency, order.paymentAddress, order.price);
+        const result = await verifyPayment(order.paymentCurrency, order.paymentAddress, order.price, order.expectedCrypto);
         
         await Order.findByIdAndUpdate(order._id, {
             $inc: { verificationAttempts: 1 },
@@ -977,7 +1045,7 @@ app.post('/api/verify-payment/:orderId', async (req, res) => {
                 { new: true }
             );
             
-            // Deposit Auto-Processing
+            // Deposit Auto-Processing: credits user with the full unique amount (including cents)
             if (updated.type === 'deposit' || updated.type === 'Deposit') {
                 const settings = await Settings.findOne() || new Settings();
                 let bonus = 0;
@@ -1003,7 +1071,7 @@ app.post('/api/verify-payment/:orderId', async (req, res) => {
 // Get payment status for an order
 app.get('/api/payment-status/:orderId', async (req, res) => {
     try {
-        const order = await Order.findById(req.params.orderId).select('paymentStatus status txHash paymentCurrency paymentAddress price');
+        const order = await Order.findById(req.params.orderId).select('paymentStatus status txHash paymentCurrency paymentAddress price expectedCrypto');
         if (!order) return res.status(404).json({ error: 'Order not found' });
         res.json(order);
     } catch (err) { res.status(500).json({ error: 'Server error' }); }
@@ -1024,20 +1092,28 @@ async function runPaymentPoller() {
         console.log(`[Poller] Checking ${pendingOrders.length} pending payment(s)...`);
 
         for (const order of pendingOrders) {
-            const result = await verifyPayment(order.paymentCurrency, order.paymentAddress, order.price);
+            const result = await verifyPayment(order.paymentCurrency, order.paymentAddress, order.price, order.expectedCrypto);
             await Order.findByIdAndUpdate(order._id, {
                 $inc: { verificationAttempts: 1 },
                 lastChecked: new Date()
             });
 
             if (result.verified) {
+                if (result.txHash) {
+                    const existing = await Order.findOne({ txHash: result.txHash, _id: { $ne: order._id } });
+                    if (existing) {
+                        console.log(`[Poller] TX ${result.txHash} already claimed by order ${existing._id}`);
+                        continue;
+                    }
+                }
+
                 const updated = await Order.findByIdAndUpdate(order._id, {
                     paymentStatus: 'Paid',
                     status: 'Pending',
                     txHash: result.txHash
                 }, { new: true });
                 
-                // Deposit Auto-Processing
+                // Deposit Auto-Processing: credits user with the full unique amount (including cents)
                 if (updated.type === 'deposit' || updated.type === 'Deposit') {
                     const settings = await Settings.findOne() || new Settings();
                     let bonus = 0;

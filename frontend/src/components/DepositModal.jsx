@@ -34,6 +34,10 @@ export default function DepositModal({ onClose }) {
       return alert(`Minimum deposit is $${settings.minDeposit}`);
     }
     
+    // Add small random cents (e.g. $0.03 to $0.49) so each pending deposit is 100% unique and auto-matches instantly
+    const randomCents = (Math.floor(Math.random() * 47) + 3) / 100;
+    const uniqueAmount = Number((Math.floor(amount) + randomCents).toFixed(2));
+
     setDepositLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/orders`, {
@@ -43,7 +47,7 @@ export default function DepositModal({ onClose }) {
           userId: user.id || user._id,
           type: 'deposit',
           name: 'Wallet Deposit',
-          price: amount,
+          price: uniqueAmount,
           status: 'Pending Payment',
           paymentStatus: 'Pending Payment'
         })

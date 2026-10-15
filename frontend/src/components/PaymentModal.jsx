@@ -10,6 +10,8 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   const [txHash, setTxHash] = useState('');
   const [attempts, setAttempts] = useState(0);
   const [showQR, setShowQR] = useState(false);
+  const [cryptoRate, setCryptoRate] = useState(null);
+  const [cryptoAmount, setCryptoAmount] = useState(null);
   const pollRef = useRef(null);
 
   // Default fallback wallet addresses
@@ -20,6 +22,21 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
     SOL: 'AigcpMzqZw9asMFVSdNi8T4MAHHujykEUdyUjTH9F6JG',
     ETH: '0x54defcf541d174e7443c1ada58875e3e04ca5178',
     TON: 'UQDxZ_1B6JccNyqYpXLnKFK-McmvtMOesfP06av73h-CYNFM'
+  };
+
+  // Helper: format crypto amount by coin
+  const formatCrypto = (amountUSD, priceUSD, currency) => {
+    if (!priceUSD || priceUSD <= 0 || !amountUSD) return null;
+    const raw = Number(amountUSD) / Number(priceUSD);
+    switch (currency) {
+      case 'BTC': return Number(raw.toFixed(6));
+      case 'LTC': return Number(raw.toFixed(4));
+      case 'ETH': return Number(raw.toFixed(5));
+      case 'SOL': return Number(raw.toFixed(4));
+      case 'TON': return Number(raw.toFixed(4));
+      case 'USDT_TRC20':
+      default: return Number(Number(amountUSD).toFixed(2));
+    }
   };
 
   // Fetch enabled coins from settings
@@ -44,26 +61,42 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
       .catch(() => {});
   }, []);
 
-  // Fetch real wallet address from backend
+  // Fetch real wallet address and live rate from backend when crypto changes
   useEffect(() => {
     setWalletAddress(defaultAddresses[selectedCrypto] || '');
     setCheckStatus('idle');
+
+    // Fetch address
     fetch(`${API_BASE}/api/payment/address/${selectedCrypto}`)
       .then(r => r.json())
       .then(d => { if (d.address) setWalletAddress(d.address); })
       .catch(() => {});
-  }, [selectedCrypto]);
+
+    // Fetch live rate and calculate exact crypto amount
+    if (order && order.price) {
+      fetch(`${API_BASE}/api/payment/rate/${selectedCrypto}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data && data.priceUSD) {
+            setCryptoRate(data.priceUSD);
+            const formatted = formatCrypto(order.price, data.priceUSD, selectedCrypto);
+            setCryptoAmount(formatted);
+            if (order._id) {
+              fetch(`${API_BASE}/api/orders/${order._id}/currency`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentCurrency: selectedCrypto, expectedCrypto: formatted })
+              }).catch(() => {});
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [selectedCrypto, order?.price, order?._id]);
 
   // Save payment currency to order when user picks it
   const handleCryptoSelect = async (currency) => {
     setSelectedCrypto(currency);
-    if (order._id) {
-      fetch(`${API_BASE}/api/orders/${order._id}/currency`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentCurrency: currency })
-      }).catch(() => {});
-    }
   };
 
   const checkPayment = useCallback(async () => {
@@ -298,12 +331,19 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
                 borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '8px', marginTop: '6px'
               }}>
                 <span style={{ color: '#fff', fontWeight: '600' }}>Amount Due:</span>
-                <span style={{
-                  color: '#00f2fe', fontSize: '18px', fontWeight: '800',
-                  textShadow: '0 0 10px rgba(0,242,254,0.4)'
-                }}>
-                  ${order.price || 0} USD
-                </span>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{
+                    color: '#00f2fe', fontSize: '18px', fontWeight: '800',
+                    textShadow: '0 0 10px rgba(0,242,254,0.4)'
+                  }}>
+                    ${Number(order.price || 0).toFixed(2)} USD
+                  </div>
+                  {cryptoAmount && (
+                    <div style={{ color: '#4ade80', fontSize: '12px', fontWeight: '700', marginTop: '2px' }}>
+                      ≈ {cryptoAmount} {selectedCrypto}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -335,6 +375,58 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
                 <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#00f2fe', fontSize: '11px' }}>
                   ▼
                 </div>
+              </div>
+            </div>
+
+            {/* Exact Amount To Send Box with 1-Click Copy */}
+            <div style={{
+              backgroundColor: '#0a0c10',
+              border: '1px solid rgba(0, 242, 254, 0.35)',
+              borderRadius: '12px', padding: '12px', marginBottom: '12px',
+              boxShadow: '0 4px 15px rgba(0, 242, 254, 0.08)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: '#8a94a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Exact Amount to Send ({selectedCrypto})
+                </span>
+                {copied === 'amount' && (
+                  <span style={{ fontSize: '10px', color: '#48a464', fontWeight: '700' }}>
+                    ✓ Amount Copied!
+                  </span>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{
+                  flex: 1, backgroundColor: '#141820', border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: '8px', padding: '10px', color: '#4ade80',
+                  fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+                  fontSize: '15px', fontWeight: '800', textAlign: 'center',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)', userSelect: 'all'
+                }}>
+                  {cryptoAmount ? `${cryptoAmount} ${selectedCrypto}` : `$${Number(order.price || 0).toFixed(2)} USD`}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleCopy(cryptoAmount ? cryptoAmount.toString() : Number(order.price || 0).toFixed(2), 'amount')}
+                  style={{
+                    padding: '10px 14px',
+                    background: copied === 'amount'
+                      ? 'linear-gradient(135deg, #48a464, #2e7d32)'
+                      : 'linear-gradient(135deg, #00f2fe, #7f00ff)',
+                    color: '#ffffff', border: 'none', borderRadius: '8px',
+                    cursor: 'pointer', fontWeight: '700', fontSize: '12px',
+                    display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap',
+                    transition: 'all 0.2s ease', outline: 'none'
+                  }}
+                >
+                  {copied === 'amount' ? '✔ Copied' : '📋 Copy Amount'}
+                </button>
+              </div>
+              
+              <div style={{ fontSize: '10px', color: '#8a94a6', marginTop: '6px', textAlign: 'center' }}>
+                💡 Send exact amount above. Small random cents guarantee instant, 100% automated matching.
               </div>
             </div>
 
@@ -448,7 +540,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
               marginBottom: '14px', backgroundColor: 'rgba(255, 255, 255, 0.02)',
               padding: '8px 10px', borderRadius: '8px', borderLeft: '3px solid #00f2fe'
             }}>
-              📌 Send exact amount of <strong>${order.price || 0} USD</strong> in {cryptoLabels[selectedCrypto]}. Automatically verified on blockchain.
+              📌 Send exact amount of <strong>{cryptoAmount ? `${cryptoAmount} ${selectedCrypto}` : `$${Number(order.price || 0).toFixed(2)} USD`}</strong> (${Number(order.price || 0).toFixed(2)} USD). Automatically verified on blockchain.
             </div>
 
             {/* Check Payment CTA Button */}
