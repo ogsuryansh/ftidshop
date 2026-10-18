@@ -23,6 +23,15 @@ function safeParseUser(raw) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
+function HomeRedirect() {
+  const token = localStorage.getItem('token');
+  const user = safeParseUser(localStorage.getItem('user'));
+  if (token && user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Navigate to="/login" replace />;
+}
+
 function App() {
   // Never show the loader on admin routes — it causes a black screen over the admin panel
   const isAdminRoute = window.location.pathname.startsWith('/admin');
@@ -62,7 +71,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/login" replace />} />
+            <Route index element={<HomeRedirect />} />
             <Route path="login" element={<SignIn />} />
             <Route path="register" element={<SignUp />} />
             <Route path="forgot-password" element={<ForgotPassword />} />

@@ -12,6 +12,12 @@ export default function DashboardLayout() {
   const [showDepositModal, setShowDepositModal] = useState(false);
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
+
     // Immediate sync on layout mount
     fetchLatestUserData();
 

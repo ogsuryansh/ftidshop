@@ -75,6 +75,15 @@ export default function SignUp() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // If already logged in, automatically proceed to dashboard
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    if (token && user && user !== 'undefined' && user !== 'null') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
+
   const handleRegister = async (e) => {
     e.preventDefault();
     if (isLoading) return;

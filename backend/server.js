@@ -287,7 +287,7 @@ app.post('/api/register', async (req, res) => {
         const newUser = new User({ name, email, password: hashedPassword });
         await newUser.save();
         
-        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
+        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
         
         res.json({ message: 'Registration successful!', token, user: { id: newUser._id, name: newUser.name, email: newUser.email, credits: newUser.credits, twoFactorEnabled: false, joined: newUser.createdAt } });
     } catch (err) {
@@ -320,7 +320,7 @@ app.post('/api/login', async (req, res) => {
             }
         }
 
-        const token = jwt.sign({ id: user._id, role: 'user' }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
+        const token = jwt.sign({ id: user._id, role: 'user' }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
         
         res.json({ token, user: { id: user._id, name: user.name, email: user.email, credits: user.credits, twoFactorEnabled: user.twoFactorEnabled || false, joined: user.createdAt } });
     } catch (err) {
@@ -634,7 +634,7 @@ app.post('/api/admin/verify-2fa', async (req, res) => {
         const admin = await Admin.findById(adminId);
         if (!admin) return res.status(400).json({ error: 'Admin not found' });
         
-        const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET || 'secret', { expiresIn: '1d' });
+        const token = jwt.sign({ id: admin._id, role: 'admin' }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
         res.json({ token, admin: { id: admin._id, username: admin.username } });
     } catch (err) {
         console.error(err);

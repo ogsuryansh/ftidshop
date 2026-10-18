@@ -11,6 +11,15 @@ export default function AdminLogin() {
   const [adminId, setAdminId] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // If already logged in as admin, redirect to admin dashboard
+  React.useEffect(() => {
+    const adminToken = localStorage.getItem('admin_token');
+    const admin = localStorage.getItem('admin');
+    if (adminToken && admin && admin !== 'undefined' && admin !== 'null') {
+      navigate('/admin/dashboard', { replace: true });
+    }
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);

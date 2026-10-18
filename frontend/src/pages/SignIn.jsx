@@ -12,6 +12,15 @@ export default function SignIn() {
   const [loginAs, setLoginAs] = useState('Customer');
   const [isLoading, setIsLoading] = useState(false);
 
+  // If already logged in, automatically proceed to dashboard
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    if (token && user && user !== 'undefined' && user !== 'null') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     if (isLoading) return;
