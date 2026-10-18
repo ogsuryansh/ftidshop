@@ -803,12 +803,19 @@ export default function AdminDashboard() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', marginBottom: '6px', color: '#ccc', fontSize: '12px', fontWeight: '700' }}>
-                      🔑 Telegram Bot API Token (from @BotFather)
-                    </label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label style={{ color: '#ccc', fontSize: '12px', fontWeight: '700' }}>
+                        🔑 Telegram Bot API Token (from @BotFather)
+                      </label>
+                      {settings.hasTelegramBotToken && (
+                        <span style={{ fontSize: '11px', color: '#4ade80', fontWeight: '700' }}>
+                          ✔ Token Active & Configured
+                        </span>
+                      )}
+                    </div>
                     <input
-                      type="text"
-                      placeholder="Configured in backend .env (or enter to override)"
+                      type="password"
+                      placeholder={settings.hasTelegramBotToken ? "•••••••••••••••••••• (Leave blank to keep active token)" : "Enter Bot Token from @BotFather"}
                       value={settings.telegramBotToken || ''}
                       onChange={e => setSettings({ ...settings, telegramBotToken: e.target.value })}
                       style={{
@@ -819,7 +826,7 @@ export default function AdminDashboard() {
                       }}
                     />
                     <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#888' }}>
-                      Configured via <code>TELEGRAM_BOT_TOKEN</code> in <code>.env</code>. You can optionally override it here.
+                      Stored securely in database. Enter a new token to update, or leave blank to keep current token.
                     </p>
                   </div>
                 </div>

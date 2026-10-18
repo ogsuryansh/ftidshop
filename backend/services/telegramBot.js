@@ -75,6 +75,9 @@ async function createStarsInvoice({ orderId, title, description, priceUSD, userI
         if (!config.enabled) {
             return { success: false, error: 'Telegram Stars payments are currently disabled' };
         }
+        if (!config.token) {
+            return { success: false, error: 'Telegram Bot Token is not configured. Please add it in Admin Settings.' };
+        }
 
         const price = Math.max(0.01, Number(priceUSD) || 1);
         // Calculate stars based on dynamic rate (e.g. 90 Stars = $1 USD)

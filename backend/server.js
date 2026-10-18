@@ -751,6 +751,11 @@ app.get('/api/settings', async (req, res) => {
         if (doc.enableTelegramStars === undefined) doc.enableTelegramStars = true;
         if (doc.telegramStarsRate === undefined) doc.telegramStarsRate = 90;
         if (doc.telegramBotUsername === undefined) doc.telegramBotUsername = 'Shopstarsh1_bot';
+        
+        // Security: Never leak full bot token to the public API
+        doc.hasTelegramBotToken = !!(doc.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN);
+        delete doc.telegramBotToken;
+
         res.json(doc);
     } catch (err) {
         console.error(err);
@@ -760,11 +765,19 @@ app.get('/api/settings', async (req, res) => {
 
 app.put('/api/admin/settings', authAdmin, async (req, res) => {
     try {
-        const settings = await Settings.findOneAndUpdate({}, req.body, { new: true, upsert: true });
+        const updateData = { ...req.body };
+        // Don't overwrite existing token if admin leaves it empty
+        if (!updateData.telegramBotToken || updateData.telegramBotToken.trim() === '') {
+            delete updateData.telegramBotToken;
+        }
+        const settings = await Settings.findOneAndUpdate({}, updateData, { new: true, upsert: true });
         if (telegramBot && telegramBot.reloadConfig) {
             telegramBot.reloadConfig();
         }
-        res.json(settings);
+        const safeSettings = settings.toObject ? settings.toObject() : { ...settings };
+        safeSettings.hasTelegramBotToken = !!(safeSettings.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN);
+        delete safeSettings.telegramBotToken;
+        res.json(safeSettings);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server error updating settings' });
