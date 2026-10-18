@@ -3,8 +3,8 @@ import { API_BASE } from '../config';
 
 export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   const [copied, setCopied] = useState('');
-  const [enabledCoins, setEnabledCoins] = useState(['BTC', 'LTC']);
-  const [selectedCrypto, setSelectedCrypto] = useState('BTC');
+  const [enabledCoins, setEnabledCoins] = useState(['TELEGRAM_STARS', 'BTC', 'LTC']);
+  const [selectedCrypto, setSelectedCrypto] = useState('TELEGRAM_STARS');
   const [walletAddress, setWalletAddress] = useState('');
   const [checkStatus, setCheckStatus] = useState('idle'); // idle | checking | confirmed | failed
   const [txHash, setTxHash] = useState('');
@@ -423,10 +423,45 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
             </div>
 
             {/* Currency Select */}
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#8a94a6', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Select Payment Coin
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: '#8a94a6', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Payment Method
               </label>
+
+              {/* Quick Select Tabs */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginBottom: '10px' }}>
+                {enabledCoins.map(coinKey => {
+                  const isSelected = selectedCrypto === coinKey;
+                  const isStars = coinKey === 'TELEGRAM_STARS';
+                  return (
+                    <button
+                      key={coinKey}
+                      type="button"
+                      onClick={() => handleCryptoSelect(coinKey)}
+                      style={{
+                        padding: '10px 8px',
+                        borderRadius: '10px',
+                        background: isSelected
+                          ? (isStars ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(0, 136, 204, 0.35))' : 'linear-gradient(135deg, rgba(0, 242, 254, 0.2), rgba(127, 0, 255, 0.25))')
+                          : 'rgba(255, 255, 255, 0.04)',
+                        border: isSelected
+                          ? (isStars ? '2px solid #ffd700' : '2px solid #00f2fe')
+                          : '1px solid rgba(255, 255, 255, 0.08)',
+                        color: isSelected ? (isStars ? '#ffd700' : '#00f2fe') : '#aaa',
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                        fontWeight: '700', fontSize: isStars ? '12px' : '11px',
+                        boxShadow: isSelected ? (isStars ? '0 0 15px rgba(255, 215, 0, 0.3)' : '0 0 15px rgba(0, 242, 254, 0.25)') : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <span style={{ fontSize: '15px' }}>{cryptoIcons[coinKey]}</span>
+                      <span>{isStars ? 'Telegram Stars' : (coinKey === 'USDT_TRC20' ? 'USDT' : coinKey)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               <div style={{ position: 'relative' }}>
                 <select
                   value={selectedCrypto}
