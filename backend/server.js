@@ -15,6 +15,7 @@ const Admin = require('./models/Admin');
 const Order = require('./models/Order');
 const Product = require('./models/Product');
 const Settings = require('./models/Settings');
+const telegramBot = require('./services/telegramBot');
 const { verifyPayment, getCoinRate, formatCryptoAmount } = require('./services/cryptoVerifier');
 
 // ─── Wallet addresses helper ──────────────────────────────────────────
@@ -747,6 +748,9 @@ app.get('/api/settings', async (req, res) => {
         if (doc.enableSOL === undefined) doc.enableSOL = false;
         if (doc.enableETH === undefined) doc.enableETH = false;
         if (doc.enableTON === undefined) doc.enableTON = false;
+        if (doc.enableTelegramStars === undefined) doc.enableTelegramStars = true;
+        if (doc.telegramStarsRate === undefined) doc.telegramStarsRate = 90;
+        if (doc.telegramBotUsername === undefined) doc.telegramBotUsername = 'Shopstarsh1_bot';
         res.json(doc);
     } catch (err) {
         console.error(err);
@@ -757,6 +761,9 @@ app.get('/api/settings', async (req, res) => {
 app.put('/api/admin/settings', authAdmin, async (req, res) => {
     try {
         const settings = await Settings.findOneAndUpdate({}, req.body, { new: true, upsert: true });
+        if (telegramBot && telegramBot.reloadConfig) {
+            telegramBot.reloadConfig();
+        }
         res.json(settings);
     } catch (err) {
         console.error(err);
@@ -1068,6 +1075,83 @@ app.post('/api/verify-payment/:orderId', async (req, res) => {
     }
 });
 
+// ─── Telegram Stars Payment Endpoints ──────────────────────────────────────────
+
+// Create Telegram Stars invoice link for an order
+app.post('/api/payment/telegram-stars-invoice', async (req, res) => {
+    try {
+        const { orderId, priceUSD, title, description, userId } = req.body;
+        
+        let targetOrder = null;
+        let finalPrice = priceUSD;
+        let finalTitle = title;
+        let finalDesc = description;
+        let finalUserId = userId;
+
+        if (orderId) {
+            targetOrder = await Order.findById(orderId);
+            if (!targetOrder) {
+                return res.status(404).json({ error: 'Order not found' });
+            }
+            if (targetOrder.paymentStatus === 'Paid') {
+                return res.json({ paid: true, order: targetOrder });
+            }
+            finalPrice = targetOrder.price;
+            finalTitle = targetOrder.name ? `Order #${targetOrder._id.toString().slice(-6)} - ${targetOrder.name}` : `FTID Order #${targetOrder._id.toString().slice(-6)}`;
+            finalDesc = `Payment of ${Math.round(finalPrice * 90)} Stars ($${finalPrice.toFixed(2)} USD)`;
+            finalUserId = targetOrder.userId;
+        }
+
+        if (!finalPrice || finalPrice <= 0) {
+            return res.status(400).json({ error: 'Valid price is required' });
+        }
+
+        const effectiveOrderId = targetOrder ? targetOrder._id.toString() : (orderId || `temp_${Date.now()}`);
+
+        const result = await telegramBot.createStarsInvoice({
+            orderId: effectiveOrderId,
+            title: finalTitle || 'FTID Shop Order',
+            description: finalDesc || `Payment for order (${finalPrice.toFixed(2)} USD)`,
+            priceUSD: finalPrice,
+            userId: finalUserId
+        });
+
+        if (!result.success) {
+            return res.status(400).json({ error: result.error || 'Failed to create Telegram Stars invoice' });
+        }
+
+        if (targetOrder) {
+            targetOrder.telegramInvoiceLink = result.invoiceLink;
+            targetOrder.telegramStarsAmount = result.starsAmount;
+            targetOrder.paymentCurrency = 'TELEGRAM_STARS';
+            await targetOrder.save();
+        }
+
+        res.json({
+            success: true,
+            invoiceLink: result.invoiceLink,
+            starsAmount: result.starsAmount,
+            starsRate: result.starsRate,
+            orderId: effectiveOrderId,
+            priceUSD: finalPrice
+        });
+    } catch (err) {
+        console.error('[StarsInvoice] Error:', err);
+        res.status(500).json({ error: 'Server error generating Stars invoice' });
+    }
+});
+
+// Telegram Bot Webhook endpoint (for webhook mode / serverless)
+app.post('/api/telegram-webhook', async (req, res) => {
+    try {
+        await telegramBot.processUpdate(req.body);
+        res.sendStatus(200);
+    } catch (err) {
+        console.error('[TelegramWebhook] Error:', err);
+        res.sendStatus(500);
+    }
+});
+
 // Get payment status for an order
 app.get('/api/payment-status/:orderId', async (req, res) => {
     try {
@@ -1133,10 +1217,11 @@ async function runPaymentPoller() {
     }
 }
 
-// Start polling only in non-serverless environments
+// Start polling & Telegram bot in non-serverless environments
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     setInterval(runPaymentPoller, 60 * 1000); // every 60 seconds
     console.log('[Poller] Payment auto-verification job started (60s interval)');
+    telegramBot.start();
 }
 
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {

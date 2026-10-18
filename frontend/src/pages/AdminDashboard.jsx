@@ -31,7 +31,11 @@ export default function AdminDashboard() {
     enableUSDT_TRC20: false,
     enableSOL: false,
     enableETH: false,
-    enableTON: false
+    enableTON: false,
+    enableTelegramStars: true,
+    telegramStarsRate: 90,
+    telegramBotToken: '',
+    telegramBotUsername: 'Shopstarsh1_bot'
   });
   const [balanceModalUser, setBalanceModalUser] = useState(null);
   const [balanceAmount, setBalanceAmount] = useState('');
@@ -139,7 +143,7 @@ export default function AdminDashboard() {
       setUsers(Array.isArray(uData) ? uData : []);
       setOrders(Array.isArray(oData) ? oData : []);
       setProducts(Array.isArray(pData) ? pData : []);
-      if (sData && sData.minDeposit) setSettings(sData);
+      if (sData) setSettings(prev => ({ ...prev, ...sData }));
     } catch (err) {
       console.error('Fetch admin data error:', err);
     }
@@ -692,6 +696,134 @@ export default function AdminDashboard() {
                   <input type="email" required value={settings.adminEmail || ''} onChange={e => setSettings({...settings, adminEmail: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', outline: 'none' }} />
                   <p style={{ margin: '6px 0 0', fontSize: '12px', color: '#888' }}>The email address that receives the 6-digit 2FA code during Admin Login.</p>
                 </div>
+                <hr style={{ border: 'none', borderTop: '1px solid #333', margin: '14px 0' }} />
+
+                {/* ─── Telegram Stars Settings Card ─── */}
+                <div style={{
+                  backgroundColor: '#161920',
+                  border: `1px solid ${settings.enableTelegramStars !== false ? 'rgba(255, 215, 0, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
+                  borderRadius: '12px',
+                  padding: '20px',
+                  boxShadow: settings.enableTelegramStars !== false ? '0 4px 20px rgba(255, 215, 0, 0.12)' : 'none',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: '42px', height: '42px', borderRadius: '50%',
+                        backgroundColor: 'rgba(255, 215, 0, 0.15)', color: '#ffd700',
+                        fontSize: '22px'
+                      }}>
+                        ⭐
+                      </span>
+                      <div>
+                        <div style={{ color: '#fff', fontWeight: '800', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          Telegram Stars (XTR) Payment Bot
+                          <span style={{
+                            fontSize: '10px', padding: '2px 8px', borderRadius: '12px',
+                            background: 'linear-gradient(90deg, #ffd700, #ff8c00)',
+                            color: '#000', fontWeight: '800', letterSpacing: '0.5px'
+                          }}>
+                            OFFICIAL
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: settings.enableTelegramStars !== false ? '#4ade80' : '#888', display: 'flex', alignItems: 'center', gap: '5px', marginTop: '3px' }}>
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: settings.enableTelegramStars !== false ? '#4ade80' : '#666', display: 'inline-block' }}></span>
+                          {settings.enableTelegramStars !== false ? 'Active (Bot accepts Telegram Stars payments)' : 'Disabled (Hidden from users)'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <label style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      cursor: 'pointer', userSelect: 'none',
+                      padding: '6px 14px', borderRadius: '20px',
+                      backgroundColor: settings.enableTelegramStars !== false ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                      border: `1px solid ${settings.enableTelegramStars !== false ? 'rgba(255, 215, 0, 0.5)' : '#333'}`
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={settings.enableTelegramStars !== false}
+                        onChange={e => setSettings({ ...settings, enableTelegramStars: e.target.checked })}
+                        style={{ width: '16px', height: '16px', accentColor: '#ffd700', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: '12px', fontWeight: '800', color: settings.enableTelegramStars !== false ? '#ffd700' : '#888' }}>
+                        {settings.enableTelegramStars !== false ? 'ENABLED' : 'DISABLED'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#aaa', lineHeight: '1.5' }}>
+                    Runs natively inside your Node.js backend on host/VPS. Automatically generates official <code>t.me/$...</code> Telegram Stars invoice links, auto-approves pre-checkout queries, and marks orders as Paid / auto-credits wallet balance instantly upon payment.
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginBottom: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', color: '#ccc', fontSize: '12px', fontWeight: '700' }}>
+                        ⭐ Telegram Stars per $1.00 USD (Exchange Rate)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        required
+                        value={settings.telegramStarsRate ?? 90}
+                        onChange={e => setSettings({ ...settings, telegramStarsRate: Number(e.target.value) })}
+                        style={{
+                          width: '100%', padding: '10px 12px', borderRadius: '6px',
+                          backgroundColor: '#101217', border: '1px solid rgba(255, 215, 0, 0.3)',
+                          color: '#ffd700', outline: 'none', fontSize: '14px', fontWeight: '700'
+                        }}
+                      />
+                      <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#888' }}>
+                        Live conversion: $15 = <strong>{Math.round(15 * (Number(settings.telegramStarsRate) || 90)).toLocaleString()} Stars</strong> | $50 = <strong>{Math.round(50 * (Number(settings.telegramStarsRate) || 90)).toLocaleString()} Stars</strong>
+                      </p>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', color: '#ccc', fontSize: '12px', fontWeight: '700' }}>
+                        🤖 Telegram Bot Username
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Shopstarsh1_bot"
+                        value={settings.telegramBotUsername || ''}
+                        onChange={e => setSettings({ ...settings, telegramBotUsername: e.target.value })}
+                        style={{
+                          width: '100%', padding: '10px 12px', borderRadius: '6px',
+                          backgroundColor: '#101217', border: '1px solid #2a2e39',
+                          color: '#00f2fe', outline: 'none', fontSize: '13px'
+                        }}
+                      />
+                      <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#888' }}>
+                        Direct Bot Link: <a href={`https://t.me/${settings.telegramBotUsername || 'Shopstarsh1_bot'}`} target="_blank" rel="noreferrer" style={{ color: '#00f2fe' }}>@{settings.telegramBotUsername || 'Shopstarsh1_bot'}</a>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '6px', color: '#ccc', fontSize: '12px', fontWeight: '700' }}>
+                      🔑 Telegram Bot API Token (from @BotFather)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Configured in backend .env (or enter to override)"
+                      value={settings.telegramBotToken || ''}
+                      onChange={e => setSettings({ ...settings, telegramBotToken: e.target.value })}
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: '6px',
+                        backgroundColor: '#101217', border: '1px solid #2a2e39',
+                        color: '#fff', outline: 'none', fontSize: '13px',
+                        fontFamily: 'monospace'
+                      }}
+                    />
+                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#888' }}>
+                      Configured via <code>TELEGRAM_BOT_TOKEN</code> in <code>.env</code>. You can optionally override it here.
+                    </p>
+                  </div>
+                </div>
+
                 <hr style={{ border: 'none', borderTop: '1px solid #333', margin: '14px 0' }} />
                 <div>
                   <h4 style={{ margin: '0 0 6px', color: '#fff', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -12,6 +12,9 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   const [showQR, setShowQR] = useState(false);
   const [cryptoRate, setCryptoRate] = useState(null);
   const [cryptoAmount, setCryptoAmount] = useState(null);
+  const [starsInvoice, setStarsInvoice] = useState(null);
+  const [loadingStars, setLoadingStars] = useState(false);
+  const [starsError, setStarsError] = useState('');
   const pollRef = useRef(null);
 
   // Default fallback wallet addresses
@@ -46,6 +49,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
       .then(s => {
         if (s) {
           const list = [];
+          if (s.enableTelegramStars !== false) list.push('TELEGRAM_STARS');
           if (s.enableBTC !== false) list.push('BTC');
           if (s.enableLTC !== false) list.push('LTC');
           if (s.enableUSDT_TRC20) list.push('USDT_TRC20');
@@ -63,8 +67,57 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
 
   // Fetch real wallet address and live rate from backend when crypto changes
   useEffect(() => {
-    setWalletAddress(defaultAddresses[selectedCrypto] || '');
     setCheckStatus('idle');
+
+    if (selectedCrypto === 'TELEGRAM_STARS') {
+      setWalletAddress('');
+      if (order && order._id) {
+        setLoadingStars(true);
+        setStarsError('');
+        fetch(`${API_BASE}/api/payment/telegram-stars-invoice`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId: order._id })
+        })
+          .then(r => r.json())
+          .then(data => {
+            setLoadingStars(false);
+            if (data.success && data.invoiceLink) {
+              setStarsInvoice(data);
+              setCryptoAmount(data.starsAmount);
+            } else if (data.paid) {
+              setCheckStatus('confirmed');
+              if (onPaymentConfirmed) onPaymentConfirmed(data.order);
+            } else {
+              setStarsError(data.error || 'Failed to generate Stars invoice');
+            }
+          })
+          .catch(err => {
+            setLoadingStars(false);
+            setStarsError('Failed to connect to Telegram Stars service');
+          });
+
+        // Fast poll payment status every 3.5s for real-time Telegram Stars confirmation
+        const starsInterval = setInterval(() => {
+          fetch(`${API_BASE}/api/payment-status/${order._id}`)
+            .then(r => r.json())
+            .then(st => {
+              if (st && (st.paymentStatus === 'Paid' || st.status === 'Completed')) {
+                clearInterval(starsInterval);
+                setCheckStatus('confirmed');
+                setTxHash(st.txHash || '');
+                if (onPaymentConfirmed) onPaymentConfirmed(st);
+              }
+            })
+            .catch(() => {});
+        }, 3500);
+
+        return () => clearInterval(starsInterval);
+      }
+      return;
+    }
+
+    setWalletAddress(defaultAddresses[selectedCrypto] || '');
 
     // Fetch address
     fetch(`${API_BASE}/api/payment/address/${selectedCrypto}`)
@@ -92,7 +145,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
         })
         .catch(() => {});
     }
-  }, [selectedCrypto, order?.price, order?._id]);
+  }, [selectedCrypto, order?.price, order?._id, onPaymentConfirmed]);
 
   // Save payment currency to order when user picks it
   const handleCryptoSelect = async (currency) => {
@@ -103,21 +156,37 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
     if (!order._id || checkStatus === 'confirmed') return;
     setCheckStatus('checking');
     try {
-      const res = await fetch(`${API_BASE}/api/verify-payment/${order._id}`, { method: 'POST' });
-      const data = await res.json();
-      setAttempts(a => a + 1);
-      if (data.verified) {
+      // Direct payment status check
+      const stRes = await fetch(`${API_BASE}/api/payment-status/${order._id}`);
+      const stData = await stRes.json();
+      if (stData && (stData.paymentStatus === 'Paid' || stData.status === 'Completed')) {
         setCheckStatus('confirmed');
-        setTxHash(data.txHash || '');
+        setTxHash(stData.txHash || '');
         if (pollRef.current) clearInterval(pollRef.current);
-        if (onPaymentConfirmed) onPaymentConfirmed(data.order);
+        if (onPaymentConfirmed) onPaymentConfirmed(stData);
+        return;
+      }
+
+      if (selectedCrypto !== 'TELEGRAM_STARS') {
+        const res = await fetch(`${API_BASE}/api/verify-payment/${order._id}`, { method: 'POST' });
+        const data = await res.json();
+        setAttempts(a => a + 1);
+        if (data.verified) {
+          setCheckStatus('confirmed');
+          setTxHash(data.txHash || '');
+          if (pollRef.current) clearInterval(pollRef.current);
+          if (onPaymentConfirmed) onPaymentConfirmed(data.order);
+        } else {
+          setCheckStatus('idle');
+        }
       } else {
+        setAttempts(a => a + 1);
         setCheckStatus('idle');
       }
     } catch (e) {
       setCheckStatus('idle');
     }
-  }, [order._id, checkStatus, onPaymentConfirmed]);
+  }, [order._id, checkStatus, onPaymentConfirmed, selectedCrypto]);
 
   // Auto-poll every 30 seconds after user clicks "I Have Sent Payment"
   const startPolling = () => {
@@ -140,6 +209,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   const displayAddress = walletAddress || defaultAddresses[selectedCrypto] || '';
 
   const cryptoLabels = {
+    TELEGRAM_STARS: 'Telegram Stars (⭐ XTR)',
     USDT_TRC20: 'USDT (TRC20)',
     BTC: 'Bitcoin (BTC)',
     LTC: 'Litecoin (LTC)',
@@ -149,6 +219,7 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
   };
 
   const cryptoIcons = {
+    TELEGRAM_STARS: '⭐',
     USDT_TRC20: '₮',
     BTC: '₿',
     LTC: 'Ł',
@@ -338,11 +409,15 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
                   }}>
                     ${Number(order.price || 0).toFixed(2)} USD
                   </div>
-                  {cryptoAmount && (
+                  {selectedCrypto === 'TELEGRAM_STARS' ? (
+                    <div style={{ color: '#ffd700', fontSize: '12px', fontWeight: '800', marginTop: '2px' }}>
+                      ≈ {(starsInvoice?.starsAmount || Math.round((order.price || 1) * 90)).toLocaleString()} Stars
+                    </div>
+                  ) : cryptoAmount ? (
                     <div style={{ color: '#4ade80', fontSize: '12px', fontWeight: '700', marginTop: '2px' }}>
                       ≈ {cryptoAmount} {selectedCrypto}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -378,192 +453,319 @@ export default function PaymentModal({ order, onClose, onPaymentConfirmed }) {
               </div>
             </div>
 
-            {/* Exact Amount To Send Box with 1-Click Copy */}
-            <div style={{
-              backgroundColor: '#0a0c10',
-              border: '1px solid rgba(0, 242, 254, 0.35)',
-              borderRadius: '12px', padding: '12px', marginBottom: '12px',
-              boxShadow: '0 4px 15px rgba(0, 242, 254, 0.08)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '10px', fontWeight: '700', color: '#8a94a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Exact Amount to Send ({selectedCrypto})
-                </span>
-                {copied === 'amount' && (
-                  <span style={{ fontSize: '10px', color: '#48a464', fontWeight: '700' }}>
-                    ✓ Amount Copied!
-                  </span>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <div style={{
-                  flex: 1, backgroundColor: '#141820', border: '1px solid rgba(255, 255, 255, 0.12)',
-                  borderRadius: '8px', padding: '10px', color: '#4ade80',
-                  fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-                  fontSize: '15px', fontWeight: '800', textAlign: 'center',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)', userSelect: 'all'
-                }}>
-                  {cryptoAmount ? `${cryptoAmount} ${selectedCrypto}` : `$${Number(order.price || 0).toFixed(2)} USD`}
+            {selectedCrypto === 'TELEGRAM_STARS' ? (
+              /* Telegram Stars Payment View */
+              <div style={{
+                backgroundColor: '#0c0f17',
+                border: '1px solid rgba(255, 215, 0, 0.4)',
+                borderRadius: '14px', padding: '16px', marginBottom: '12px',
+                boxShadow: '0 6px 25px rgba(255, 215, 0, 0.12)'
+              }}>
+                <div style={{ textAlign: 'center', marginBottom: '14px' }}>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: '54px', height: '54px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(0, 136, 204, 0.35))',
+                    border: '1px solid #ffd700', fontSize: '28px', marginBottom: '8px',
+                    boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)'
+                  }}>
+                    ⭐
+                  </div>
+                  <div style={{ fontSize: '12px', fontWeight: '800', color: '#ffd700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Telegram Stars (XTR) Invoice
+                  </div>
+                  <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff', margin: '4px 0', textShadow: '0 0 15px rgba(255, 215, 0, 0.5)' }}>
+                    {(starsInvoice?.starsAmount || Math.round((order.price || 1) * 90)).toLocaleString()} Stars
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#8a94a6' }}>
+                    ≈ ${Number(order.price || 0).toFixed(2)} USD • Rate: {starsInvoice?.starsRate || 90} Stars = $1.00 USD
+                  </div>
                 </div>
 
+                {loadingStars ? (
+                  <div style={{ textAlign: 'center', padding: '16px', color: '#ffd700', fontSize: '13px' }}>
+                    <span style={{ display: 'inline-block', animation: 'spinSlow 1.5s linear infinite', marginRight: '8px' }}>⏳</span>
+                    Generating secure Telegram Stars payment link...
+                  </div>
+                ) : starsError ? (
+                  <div style={{ backgroundColor: 'rgba(255, 77, 77, 0.1)', border: '1px solid #ff4d4d', borderRadius: '8px', padding: '10px', color: '#ff4d4d', fontSize: '12px', textAlign: 'center', marginBottom: '10px' }}>
+                    ⚠️ {starsError}
+                  </div>
+                ) : (
+                  <>
+                    {/* 1-Tap Pay on Telegram Button */}
+                    <a
+                      href={starsInvoice?.invoiceLink || '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #ffd700 0%, #ff8c00 50%, #0088cc 100%)',
+                        color: '#000000', textDecoration: 'none',
+                        padding: '14px', borderRadius: '10px', fontWeight: '900', fontSize: '15px',
+                        letterSpacing: '0.3px', textAlign: 'center',
+                        boxShadow: '0 8px 25px rgba(255, 215, 0, 0.35)',
+                        boxSizing: 'border-box', marginBottom: '10px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span>⭐</span> Pay {starsInvoice ? starsInvoice.starsAmount : ''} Stars on Telegram <span>➔</span>
+                    </a>
+
+                    {/* Copy Link Field */}
+                    {starsInvoice?.invoiceLink && (
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                        <input
+                          type="text"
+                          readOnly
+                          value={starsInvoice.invoiceLink}
+                          style={{
+                            flex: 1, backgroundColor: '#141820', border: '1px solid rgba(255, 255, 255, 0.12)',
+                            borderRadius: '8px', padding: '10px', color: '#00f2fe',
+                            fontSize: '11px', outline: 'none', fontFamily: 'monospace'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(starsInvoice.invoiceLink, 'starsLink')}
+                          style={{
+                            padding: '10px 14px',
+                            background: copied === 'starsLink'
+                              ? 'linear-gradient(135deg, #48a464, #2e7d32)'
+                              : 'rgba(255, 255, 255, 0.1)',
+                            color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)',
+                            borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '12px',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {copied === 'starsLink' ? '✔ Copied' : '📋 Copy Link'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Auto-confirmation pulse indicator */}
+                    <div style={{
+                      textAlign: 'center', padding: '10px', backgroundColor: 'rgba(255, 215, 0, 0.06)',
+                      border: '1px solid rgba(255, 215, 0, 0.2)', borderRadius: '10px',
+                      fontSize: '11px', color: '#ffd700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      marginBottom: '12px'
+                    }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ffd700', display: 'inline-block', boxShadow: '0 0 10px #ffd700' }}></span>
+                      <span>Waiting for payment in Telegram... Auto-confirms instantly</span>
+                    </div>
+
+                    {/* Manual Check CTA Button */}
+                    <button
+                      type="button"
+                      onClick={checkPayment}
+                      disabled={checkStatus === 'checking'}
+                      style={{
+                        width: '100%',
+                        background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)',
+                        color: '#ffffff', border: 'none', padding: '12px',
+                        borderRadius: '10px', fontWeight: '800', fontSize: '13px',
+                        cursor: checkStatus === 'checking' ? 'not-allowed' : 'pointer',
+                        opacity: checkStatus === 'checking' ? 0.7 : 1,
+                        outline: 'none'
+                      }}
+                    >
+                      {checkStatus === 'checking' ? '⏳ Verifying...' : '🔄 Check Status Now'}
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              /* Cryptocurrency Payment View */
+              <>
+                {/* Exact Amount To Send Box with 1-Click Copy */}
+                <div style={{
+                  backgroundColor: '#0a0c10',
+                  border: '1px solid rgba(0, 242, 254, 0.35)',
+                  borderRadius: '12px', padding: '12px', marginBottom: '12px',
+                  boxShadow: '0 4px 15px rgba(0, 242, 254, 0.08)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: '700', color: '#8a94a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Exact Amount to Send ({selectedCrypto})
+                    </span>
+                    {copied === 'amount' && (
+                      <span style={{ fontSize: '10px', color: '#48a464', fontWeight: '700' }}>
+                        ✓ Amount Copied!
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{
+                      flex: 1, backgroundColor: '#141820', border: '1px solid rgba(255, 255, 255, 0.12)',
+                      borderRadius: '8px', padding: '10px', color: '#4ade80',
+                      fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+                      fontSize: '15px', fontWeight: '800', textAlign: 'center',
+                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)', userSelect: 'all'
+                    }}>
+                      {cryptoAmount ? `${cryptoAmount} ${selectedCrypto}` : `$${Number(order.price || 0).toFixed(2)} USD`}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(cryptoAmount ? cryptoAmount.toString() : Number(order.price || 0).toFixed(2), 'amount')}
+                      style={{
+                        padding: '10px 14px',
+                        background: copied === 'amount'
+                          ? 'linear-gradient(135deg, #48a464, #2e7d32)'
+                          : 'linear-gradient(135deg, #00f2fe, #7f00ff)',
+                        color: '#ffffff', border: 'none', borderRadius: '8px',
+                        cursor: 'pointer', fontWeight: '700', fontSize: '12px',
+                        display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap',
+                        transition: 'all 0.2s ease', outline: 'none'
+                      }}
+                    >
+                      {copied === 'amount' ? '✔ Copied' : '📋 Copy Amount'}
+                    </button>
+                  </div>
+                  
+                  <div style={{ fontSize: '10px', color: '#8a94a6', marginTop: '6px', textAlign: 'center' }}>
+                    💡 Send exact amount above. Small random cents guarantee instant, 100% automated matching.
+                  </div>
+                </div>
+
+                {/* QR Code toggle / view */}
+                {qrCodeUrl && (
+                  <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowQR(!showQR)}
+                      style={{
+                        background: 'transparent', border: 'none', color: '#00f2fe',
+                        fontSize: '11px', fontWeight: '600', cursor: 'pointer',
+                        textDecoration: 'underline', padding: '2px', outline: 'none'
+                      }}
+                    >
+                      {showQR ? '▲ Hide QR Code' : '📷 Show QR Code'}
+                    </button>
+                    {showQR && (
+                      <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center' }}>
+                        <div style={{
+                          background: '#ffffff', padding: '8px', borderRadius: '12px',
+                          boxShadow: '0 6px 20px rgba(0, 242, 254, 0.2)'
+                        }}>
+                          <img
+                            src={qrCodeUrl}
+                            alt="Deposit Address QR Code"
+                            style={{ width: '120px', height: '120px', display: 'block' }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Deposit Address Box (Mobile Responsive & Compact) */}
+                <div style={{
+                  backgroundColor: '#0a0c10',
+                  border: '1px dashed rgba(0, 242, 254, 0.35)',
+                  borderRadius: '12px', padding: '12px', marginBottom: '12px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: '700', color: '#8a94a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Deposit Address ({selectedCrypto})
+                    </span>
+                    {copied === selectedCrypto && (
+                      <span style={{ fontSize: '10px', color: '#48a464', fontWeight: '700' }}>
+                        ✓ Copied!
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Address display box with word-break */}
+                  <div style={{
+                    backgroundColor: '#141820',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '8px', padding: '10px',
+                    color: '#00f2fe', fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
+                    fontSize: '12px', lineHeight: '1.35', wordBreak: 'break-all',
+                    marginBottom: '8px', userSelect: 'all', textAlign: 'center',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+                  }}>
+                    {displayAddress || 'Loading wallet address...'}
+                  </div>
+
+                  {/* Action Copy Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(displayAddress, selectedCrypto)}
+                    style={{
+                      width: '100%',
+                      background: copied === selectedCrypto
+                        ? 'linear-gradient(135deg, #48a464, #2e7d32)'
+                        : 'linear-gradient(135deg, #00f2fe, #7f00ff)',
+                      color: '#ffffff', border: 'none', padding: '10px',
+                      borderRadius: '8px', cursor: 'pointer',
+                      fontWeight: '700', fontSize: '12px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      boxShadow: '0 4px 12px rgba(0, 242, 254, 0.2)',
+                      transition: 'all 0.2s ease', outline: 'none'
+                    }}
+                  >
+                    {copied === selectedCrypto ? '✔ Address Copied!' : '📋 Copy Deposit Address'}
+                  </button>
+                </div>
+
+                {/* Checking Status banner */}
+                {checkStatus === 'checking' && (
+                  <div style={{
+                    textAlign: 'center', padding: '10px', marginBottom: '12px',
+                    backgroundColor: 'rgba(0, 242, 254, 0.08)', borderRadius: '10px',
+                    border: '1px solid rgba(0, 242, 254, 0.3)', fontSize: '12px', color: '#00f2fe',
+                    fontWeight: '600'
+                  }}>
+                    <span style={{ display: 'inline-block', animation: 'spinSlow 1.5s linear infinite', marginRight: '6px' }}>⏳</span>
+                    Scanning blockchain... {attempts > 0 && `(Check #${attempts})`}
+                  </div>
+                )}
+                {checkStatus === 'idle' && attempts > 0 && (
+                  <div style={{
+                    textAlign: 'center', padding: '8px', marginBottom: '12px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px',
+                    fontSize: '11px', color: '#8a94a6'
+                  }}>
+                    Payment not detected yet. Auto-checking every 30s... (Check #{attempts})
+                  </div>
+                )}
+
+                {/* Helper Note */}
+                <div style={{
+                  fontSize: '10px', color: '#8a94a6', lineHeight: '1.4',
+                  marginBottom: '14px', backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  padding: '8px 10px', borderRadius: '8px', borderLeft: '3px solid #00f2fe'
+                }}>
+                  📌 Send exact amount of <strong>{cryptoAmount ? `${cryptoAmount} ${selectedCrypto}` : `$${Number(order.price || 0).toFixed(2)} USD`}</strong> (${Number(order.price || 0).toFixed(2)} USD). Automatically verified on blockchain.
+                </div>
+
+                {/* Check Payment CTA Button */}
                 <button
                   type="button"
-                  onClick={() => handleCopy(cryptoAmount ? cryptoAmount.toString() : Number(order.price || 0).toFixed(2), 'amount')}
+                  onClick={startPolling}
+                  disabled={checkStatus === 'checking' || !displayAddress}
                   style={{
-                    padding: '10px 14px',
-                    background: copied === 'amount'
-                      ? 'linear-gradient(135deg, #48a464, #2e7d32)'
-                      : 'linear-gradient(135deg, #00f2fe, #7f00ff)',
-                    color: '#ffffff', border: 'none', borderRadius: '8px',
-                    cursor: 'pointer', fontWeight: '700', fontSize: '12px',
-                    display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap',
+                    width: '100%',
+                    background: checkStatus === 'checking'
+                      ? '#262b36'
+                      : 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)',
+                    color: '#ffffff', border: 'none', padding: '13px',
+                    borderRadius: '10px', fontWeight: '800', fontSize: '14px',
+                    letterSpacing: '0.3px',
+                    cursor: checkStatus === 'checking' ? 'not-allowed' : 'pointer',
+                    opacity: !displayAddress ? 0.6 : 1,
+                    boxShadow: '0 6px 18px rgba(0, 242, 254, 0.25)',
                     transition: 'all 0.2s ease', outline: 'none'
                   }}
                 >
-                  {copied === 'amount' ? '✔ Copied' : '📋 Copy Amount'}
+                  {checkStatus === 'checking' ? '🔍 Scanning Blockchain...' : attempts > 0 ? '🔄 Check Again Now' : '✅ I Have Sent Payment'}
                 </button>
-              </div>
-              
-              <div style={{ fontSize: '10px', color: '#8a94a6', marginTop: '6px', textAlign: 'center' }}>
-                💡 Send exact amount above. Small random cents guarantee instant, 100% automated matching.
-              </div>
-            </div>
-
-            {/* QR Code toggle / view */}
-            {qrCodeUrl && (
-              <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowQR(!showQR)}
-                  style={{
-                    background: 'transparent', border: 'none', color: '#00f2fe',
-                    fontSize: '11px', fontWeight: '600', cursor: 'pointer',
-                    textDecoration: 'underline', padding: '2px', outline: 'none'
-                  }}
-                >
-                  {showQR ? '▲ Hide QR Code' : '📷 Show QR Code'}
-                </button>
-                {showQR && (
-                  <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center' }}>
-                    <div style={{
-                      background: '#ffffff', padding: '8px', borderRadius: '12px',
-                      boxShadow: '0 6px 20px rgba(0, 242, 254, 0.2)'
-                    }}>
-                      <img
-                        src={qrCodeUrl}
-                        alt="Deposit Address QR Code"
-                        style={{ width: '120px', height: '120px', display: 'block' }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+              </>
             )}
-
-            {/* Deposit Address Box (Mobile Responsive & Compact) */}
-            <div style={{
-              backgroundColor: '#0a0c10',
-              border: '1px dashed rgba(0, 242, 254, 0.35)',
-              borderRadius: '12px', padding: '12px', marginBottom: '12px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '10px', fontWeight: '700', color: '#8a94a6', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Deposit Address ({selectedCrypto})
-                </span>
-                {copied === selectedCrypto && (
-                  <span style={{ fontSize: '10px', color: '#48a464', fontWeight: '700' }}>
-                    ✓ Copied!
-                  </span>
-                )}
-              </div>
-
-              {/* Address display box with word-break */}
-              <div style={{
-                backgroundColor: '#141820',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px', padding: '10px',
-                color: '#00f2fe', fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace',
-                fontSize: '12px', lineHeight: '1.35', wordBreak: 'break-all',
-                marginBottom: '8px', userSelect: 'all', textAlign: 'center',
-                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
-              }}>
-                {displayAddress || 'Loading wallet address...'}
-              </div>
-
-              {/* Action Copy Button */}
-              <button
-                type="button"
-                onClick={() => handleCopy(displayAddress, selectedCrypto)}
-                style={{
-                  width: '100%',
-                  background: copied === selectedCrypto
-                    ? 'linear-gradient(135deg, #48a464, #2e7d32)'
-                    : 'linear-gradient(135deg, #00f2fe, #7f00ff)',
-                  color: '#ffffff', border: 'none', padding: '10px',
-                  borderRadius: '8px', cursor: 'pointer',
-                  fontWeight: '700', fontSize: '12px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  boxShadow: '0 4px 12px rgba(0, 242, 254, 0.2)',
-                  transition: 'all 0.2s ease', outline: 'none'
-                }}
-              >
-                {copied === selectedCrypto ? '✔ Address Copied!' : '📋 Copy Deposit Address'}
-              </button>
-            </div>
-
-            {/* Checking Status banner */}
-            {checkStatus === 'checking' && (
-              <div style={{
-                textAlign: 'center', padding: '10px', marginBottom: '12px',
-                backgroundColor: 'rgba(0, 242, 254, 0.08)', borderRadius: '10px',
-                border: '1px solid rgba(0, 242, 254, 0.3)', fontSize: '12px', color: '#00f2fe',
-                fontWeight: '600'
-              }}>
-                <span style={{ display: 'inline-block', animation: 'spinSlow 1.5s linear infinite', marginRight: '6px' }}>⏳</span>
-                Scanning blockchain... {attempts > 0 && `(Check #${attempts})`}
-              </div>
-            )}
-            {checkStatus === 'idle' && attempts > 0 && (
-              <div style={{
-                textAlign: 'center', padding: '8px', marginBottom: '12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.03)', borderRadius: '8px',
-                fontSize: '11px', color: '#8a94a6'
-              }}>
-                Payment not detected yet. Auto-checking every 30s... (Check #{attempts})
-              </div>
-            )}
-
-            {/* Helper Note */}
-            <div style={{
-              fontSize: '10px', color: '#8a94a6', lineHeight: '1.4',
-              marginBottom: '14px', backgroundColor: 'rgba(255, 255, 255, 0.02)',
-              padding: '8px 10px', borderRadius: '8px', borderLeft: '3px solid #00f2fe'
-            }}>
-              📌 Send exact amount of <strong>{cryptoAmount ? `${cryptoAmount} ${selectedCrypto}` : `$${Number(order.price || 0).toFixed(2)} USD`}</strong> (${Number(order.price || 0).toFixed(2)} USD). Automatically verified on blockchain.
-            </div>
-
-            {/* Check Payment CTA Button */}
-            <button
-              type="button"
-              onClick={startPolling}
-              disabled={checkStatus === 'checking' || !displayAddress}
-              style={{
-                width: '100%',
-                background: checkStatus === 'checking'
-                  ? '#262b36'
-                  : 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)',
-                color: '#ffffff', border: 'none', padding: '13px',
-                borderRadius: '10px', fontWeight: '800', fontSize: '14px',
-                letterSpacing: '0.3px',
-                cursor: checkStatus === 'checking' ? 'not-allowed' : 'pointer',
-                opacity: !displayAddress ? 0.6 : 1,
-                boxShadow: '0 6px 18px rgba(0, 242, 254, 0.25)',
-                transition: 'all 0.2s ease', outline: 'none'
-              }}
-            >
-              {checkStatus === 'checking' ? '🔍 Scanning Blockchain...' : attempts > 0 ? '🔄 Check Again Now' : '✅ I Have Sent Payment'}
-            </button>
           </>
         )}
       </div>

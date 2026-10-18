@@ -12,15 +12,19 @@ const orderSchema = new mongoose.Schema({
     price: { type: Number, default: 0 },
     paymentStatus: { type: String, default: 'Pending Payment', enum: ['Pending Payment', 'Paid', 'Failed'] },
     status: { type: String, default: 'Pending Payment', enum: ['Pending Payment', 'Pending', 'Processing', 'Completed', 'Cancelled'] },
-    // Crypto payment verification fields
-    paymentCurrency: { type: String, enum: ['USDT_TRC20', 'BTC', 'LTC', 'SOL', 'ETH', 'TON'], default: null },
+    // Payment verification fields (Crypto & Telegram Stars)
+    paymentCurrency: { type: String, default: null }, // 'USDT_TRC20', 'BTC', 'LTC', 'SOL', 'ETH', 'TON', 'TELEGRAM_STARS'
     paymentAddress: { type: String, default: null }, // wallet address shown to user
     expectedCrypto: { type: Number, default: null }, // exact crypto amount expected
     txHash: { type: String, default: null }, // confirmed transaction hash
     verificationAttempts: { type: Number, default: 0 },
     lastChecked: { type: Date, default: null },
+    // Telegram Stars payment fields
+    telegramInvoiceLink: { type: String, default: null },
+    telegramStarsAmount: { type: Number, default: null },
+    telegramPaymentChargeId: { type: String, default: null },
     // Trybit gateway fields
-    paymentProvider: { type: String, default: null }, // 'trybit' | 'manual'
+    paymentProvider: { type: String, default: null }, // 'telegram_stars' | 'manual' | 'trybit'
     trybitInvoiceId: { type: String, default: null },
     trybitLink: { type: String, default: null },
     trybitCurrency: { type: String, default: null }

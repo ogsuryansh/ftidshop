@@ -17,7 +17,12 @@ const settingsSchema = new mongoose.Schema({
     enableUSDT_TRC20: { type: Boolean, default: false },
     enableSOL: { type: Boolean, default: false },
     enableETH: { type: Boolean, default: false },
-    enableTON: { type: Boolean, default: false }
+    enableTON: { type: Boolean, default: false },
+    // Telegram Stars payment settings (dynamic)
+    enableTelegramStars: { type: Boolean, default: true },
+    telegramStarsRate: { type: Number, default: 90 }, // 90 Stars = $1 USD
+    telegramBotToken: { type: String, default: '' },
+    telegramBotUsername: { type: String, default: 'Shopstarsh1_bot' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Settings', settingsSchema);
