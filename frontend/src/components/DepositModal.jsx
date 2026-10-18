@@ -35,11 +35,15 @@ export default function DepositModal({ onClose }) {
     }
     
     // For deposits >= $1, add small random cents to make crypto auto-matching 100% unique.
-    // For micro deposits (< $1), preserve the exact decimal amount.
-    let uniqueAmount = Number(amount.toFixed(2));
+    // For micro deposits (< $1), preserve the exact micro decimal amount.
+    let uniqueAmount = amount;
     if (amount >= 1 && Math.floor(amount) === amount) {
       const randomCents = (Math.floor(Math.random() * 47) + 3) / 100;
       uniqueAmount = Number((amount + randomCents).toFixed(2));
+    } else if (amount >= 0.01) {
+      uniqueAmount = Number(amount.toFixed(2));
+    } else {
+      uniqueAmount = Number(amount.toFixed(4));
     }
 
     setDepositLoading(true);

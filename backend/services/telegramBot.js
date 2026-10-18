@@ -79,12 +79,12 @@ async function createStarsInvoice({ orderId, title, description, priceUSD, userI
             return { success: false, error: 'Telegram Bot Token is not configured. Please add it in Admin Settings.' };
         }
 
-        const price = Math.max(0.01, Number(priceUSD) || 1);
-        // Calculate stars based on dynamic rate (e.g. 90 Stars = $1 USD)
+        const price = Math.max(0.0001, Number(priceUSD) || 0.01);
+        // Calculate stars based on dynamic rate (e.g. 90 Stars = $1 USD). Minimum is 1 Star (Telegram minimum).
         const starsAmount = Math.max(1, Math.round(price * config.rate));
 
         const cleanTitle = (title || 'FTID Shop Order').slice(0, 32);
-        const cleanDesc = (description || `Payment of ${starsAmount} Stars ($${price.toFixed(2)})`).slice(0, 255);
+        const cleanDesc = (description || `Payment of ${starsAmount} Stars ($${price < 0.01 ? price.toFixed(4) : price.toFixed(2)})`).slice(0, 255);
         const payload = `order_${orderId}`;
 
         console.log(`[TelegramBot] Creating Stars invoice for order ${orderId}: ${starsAmount} Stars ($${price})`);

@@ -332,11 +332,11 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
                 <span style={{ color: '#fff', fontWeight: '600' }}>Amount Due:</span>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ color: '#00f2fe', fontSize: '18px', fontWeight: '800' }}>
-                    ${Number(orderData.price).toFixed(2)} USD
+                    ${Number(orderData.price || 0) < 0.01 ? Number(orderData.price || 0).toFixed(4) : Number(orderData.price || 0).toFixed(2)} USD
                   </div>
                   {selectedCrypto === 'TELEGRAM_STARS' ? (
                     <div style={{ color: '#ffd700', fontSize: '12px', fontWeight: '800', marginTop: '2px' }}>
-                      ≈ {(starsInvoice?.starsAmount || Math.round((orderData.price || 1) * 90)).toLocaleString()} Stars
+                      ≈ {(starsInvoice?.starsAmount || Math.max(1, Math.round((orderData.price || 0.01) * 90))).toLocaleString()} Stars
                     </div>
                   ) : cryptoAmount ? (
                     <div style={{ color: '#4ade80', fontSize: '12px', fontWeight: '700', marginTop: '2px' }}>
@@ -426,10 +426,10 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
                     Telegram Stars (XTR) Invoice
                   </div>
                   <div style={{ fontSize: '24px', fontWeight: '900', color: '#ffffff', margin: '4px 0', textShadow: '0 0 15px rgba(255, 215, 0, 0.5)' }}>
-                    {(starsInvoice?.starsAmount || Math.round((orderData.price || 1) * 90)).toLocaleString()} Stars
+                    {(starsInvoice?.starsAmount || Math.max(1, Math.round((orderData.price || 0.01) * 90))).toLocaleString()} Stars
                   </div>
                   <div style={{ fontSize: '12px', color: '#8a94a6' }}>
-                    ≈ ${Number(orderData.price || 0).toFixed(2)} USD • Rate: {starsInvoice?.starsRate || 90} Stars = $1.00 USD
+                    ≈ ${Number(orderData.price || 0) < 0.01 ? Number(orderData.price || 0).toFixed(4) : Number(orderData.price || 0).toFixed(2)} USD • Rate: {starsInvoice?.starsRate || 90} Stars = $1.00 USD
                   </div>
                 </div>
 
