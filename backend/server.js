@@ -865,7 +865,10 @@ app.delete('/api/admin/products/:id', authAdmin, async (req, res) => {
 async function getUniqueOrderPrice(basePrice) {
     const minCents = 2;
     const maxCents = 89;
-    const base = Math.floor(Number(basePrice) || 15);
+    const num = Number(basePrice);
+    if (isNaN(num) || num <= 0) return 15;
+    if (num < 1) return num; // NEVER alter micro amounts under $1
+    const base = Math.floor(num);
 
     try {
         const activeOrders = await Order.find({
@@ -894,12 +897,12 @@ app.post('/api/orders', async (req, res) => {
         const { paymentCurrency, paymentMethod, price, userId, type, expectedCrypto } = req.body;
         const orderData = { ...req.body };
         
-        // Ensure small unique random cents for crypto payments & deposits to guarantee 100% collision-free matching
+        // Ensure small unique random cents ONLY for whole dollar crypto payments >= $1
+        // Never scramble micro amounts (< $1) or Telegram Stars payments
         const isCryptoOrDeposit = (paymentMethod === 'Crypto' || type === 'deposit' || type === 'Deposit');
-        if (isCryptoOrDeposit) {
-            const currentPrice = Number(orderData.price) || 15;
-            // If it's a whole round dollar or needs collision check
-            if (Number.isInteger(currentPrice) || (currentPrice * 100) % 1 === 0) {
+        if (isCryptoOrDeposit && paymentCurrency !== 'TELEGRAM_STARS') {
+            const currentPrice = Number(orderData.price);
+            if (!isNaN(currentPrice) && currentPrice >= 1 && (Number.isInteger(currentPrice) || (currentPrice * 100) % 1 === 0)) {
                 orderData.price = await getUniqueOrderPrice(currentPrice);
             }
         }
