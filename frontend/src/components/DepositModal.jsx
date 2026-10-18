@@ -34,9 +34,13 @@ export default function DepositModal({ onClose }) {
       return alert(`Minimum deposit is $${settings.minDeposit}`);
     }
     
-    // Add small random cents (e.g. $0.03 to $0.49) so each pending deposit is 100% unique and auto-matches instantly
-    const randomCents = (Math.floor(Math.random() * 47) + 3) / 100;
-    const uniqueAmount = Number((Math.floor(amount) + randomCents).toFixed(2));
+    // For deposits >= $1, add small random cents to make crypto auto-matching 100% unique.
+    // For micro deposits (< $1), preserve the exact decimal amount.
+    let uniqueAmount = Number(amount.toFixed(2));
+    if (amount >= 1 && Math.floor(amount) === amount) {
+      const randomCents = (Math.floor(Math.random() * 47) + 3) / 100;
+      uniqueAmount = Number((amount + randomCents).toFixed(2));
+    }
 
     setDepositLoading(true);
     try {
