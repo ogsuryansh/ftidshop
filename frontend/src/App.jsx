@@ -74,6 +74,7 @@ function App() {
             <Route index element={<HomeRedirect />} />
             <Route path="login" element={<SignIn />} />
             <Route path="register" element={<SignUp />} />
+            <Route path="signup" element={<Navigate to="/register" replace />} />
             <Route path="forgot-password" element={<ForgotPassword />} />
             <Route path="reset-password" element={<ResetPassword />} />
           </Route>
