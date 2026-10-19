@@ -73,14 +73,9 @@ export default function CloudflareCaptcha({ onVerify }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ color: status === 'success' ? '#4ade80' : '#f1f5f9', fontSize: '13px', fontWeight: '600', letterSpacing: '0.2px' }}>
-            {status === 'success' ? 'Verification Success' : (status === 'verifying' ? 'Verifying browser...' : 'Verify you are human')}
-          </span>
-          <span style={{ color: '#64748b', fontSize: '11px', marginTop: '1px' }}>
-            {status === 'success' ? 'Protected by Cloudflare' : 'DDoS Protection & Bot Mitigation'}
-          </span>
-        </div>
+        <span style={{ color: status === 'success' ? '#4ade80' : '#f1f5f9', fontSize: '14px', fontWeight: '500' }}>
+          {status === 'success' ? 'Success' : (status === 'verifying' ? 'Verifying...' : 'Verify you are human')}
+        </span>
       </div>
 
       {/* Cloudflare Branding */}
