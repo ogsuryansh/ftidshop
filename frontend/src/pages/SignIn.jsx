@@ -14,6 +14,8 @@ export default function SignIn() {
   const [loginAs, setLoginAs] = useState('Customer');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [resetKey, setResetKey] = useState(0);
+
   // If already logged in, automatically proceed to dashboard
   React.useEffect(() => {
     const token = localStorage.getItem('token');
@@ -22,6 +24,11 @@ export default function SignIn() {
       navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
+
+  const handleVerify = React.useCallback((token) => {
+    setCaptchaToken(token);
+    if (token) setErrorMsg('');
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -56,9 +63,13 @@ export default function SignIn() {
         }
       } else {
         setErrorMsg(data.error || 'Login failed');
+        setCaptchaToken(null);
+        setResetKey(prev => prev + 1);
       }
     } catch (err) {
       setErrorMsg('Login failed. Ensure backend server is running.');
+      setCaptchaToken(null);
+      setResetKey(prev => prev + 1);
     } finally {
       setIsLoading(false);
     }
@@ -162,7 +173,7 @@ export default function SignIn() {
               </div>
 
               {/* Cloudflare DDoS Protection */}
-              <CloudflareCaptcha onVerify={(token) => { setCaptchaToken(token); setErrorMsg(''); }} />
+              <CloudflareCaptcha onVerify={handleVerify} resetTrigger={resetKey} />
               
               {/* Submit Button */}
               <button 

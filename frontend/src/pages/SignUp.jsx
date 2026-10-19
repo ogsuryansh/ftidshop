@@ -13,6 +13,8 @@ export default function SignUp() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [resetKey, setResetKey] = useState(0);
+
   // If already logged in, automatically proceed to dashboard
   React.useEffect(() => {
     const token = localStorage.getItem('token');
@@ -21,6 +23,11 @@ export default function SignUp() {
       navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
+
+  const handleVerify = React.useCallback((token) => {
+    setCaptchaToken(token);
+    if (token) setErrorMsg('');
+  }, []);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -51,9 +58,12 @@ export default function SignUp() {
       } else {
         setErrorMsg(data.error || 'Registration failed');
         setCaptchaToken(null);
+        setResetKey(prev => prev + 1);
       }
     } catch (err) {
       setErrorMsg('Network error occurred.');
+      setCaptchaToken(null);
+      setResetKey(prev => prev + 1);
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +157,7 @@ export default function SignUp() {
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <CloudflareCaptcha onVerify={(token) => setCaptchaToken(token)} />
+            <CloudflareCaptcha onVerify={handleVerify} resetTrigger={resetKey} />
           </div>
           
           {/* Submit Button */}

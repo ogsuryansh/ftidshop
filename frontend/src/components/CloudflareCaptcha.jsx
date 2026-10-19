@@ -2,38 +2,51 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const DEFAULT_SITE_KEY = '0x4AAAAAAFb0ySx4rhyVgHkM';
 
-export default function CloudflareCaptcha({ onVerify, siteKey = DEFAULT_SITE_KEY }) {
+export default function CloudflareCaptcha({ onVerify, siteKey = DEFAULT_SITE_KEY, resetTrigger = 0 }) {
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
+  const onVerifyRef = useRef(onVerify);
   const [loadError, setLoadError] = useState(false);
 
+  // Keep the latest onVerify callback in ref without re-triggering the Turnstile render effect
+  useEffect(() => {
+    onVerifyRef.current = onVerify;
+  }, [onVerify]);
+
+  // Handle in-place reset if resetTrigger changes (e.g. on invalid login/register credentials)
+  useEffect(() => {
+    if (resetTrigger > 0 && widgetIdRef.current !== null && window.turnstile) {
+      try {
+        window.turnstile.reset(widgetIdRef.current);
+      } catch (e) {
+        console.warn('Turnstile reset error:', e);
+      }
+    }
+  }, [resetTrigger]);
+
+  // Render Turnstile ONCE per component mount (does NOT re-render on parent typing/state changes)
   useEffect(() => {
     let isMounted = true;
 
     const renderWidget = () => {
       if (!isMounted || !containerRef.current || !window.turnstile) return;
-
-      // Clean up previous instance if any
-      if (widgetIdRef.current !== null) {
-        try {
-          window.turnstile.remove(widgetIdRef.current);
-        } catch (e) {}
-        widgetIdRef.current = null;
-      }
+      if (widgetIdRef.current !== null) return; // Prevent double-rendering
 
       try {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           theme: 'dark',
           size: 'normal',
+          retry: 'auto',
+          'refresh-expired': 'auto',
           callback: (token) => {
-            if (isMounted && onVerify) {
-              onVerify(token);
+            if (isMounted && onVerifyRef.current) {
+              onVerifyRef.current(token);
             }
           },
           'expired-callback': () => {
-            if (isMounted && onVerify) {
-              onVerify(null);
+            if (isMounted && onVerifyRef.current) {
+              onVerifyRef.current(null);
             }
           },
           'error-callback': (code) => {
@@ -49,7 +62,6 @@ export default function CloudflareCaptcha({ onVerify, siteKey = DEFAULT_SITE_KEY
     if (window.turnstile) {
       renderWidget();
     } else {
-      // Check if script exists or inject it
       const existingScript = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
       if (!existingScript) {
         const script = document.createElement('script');
@@ -69,7 +81,7 @@ export default function CloudflareCaptcha({ onVerify, siteKey = DEFAULT_SITE_KEY
             clearInterval(interval);
             if (isMounted) renderWidget();
           }
-        }, 150);
+        }, 100);
         return () => clearInterval(interval);
       }
     }
@@ -83,7 +95,7 @@ export default function CloudflareCaptcha({ onVerify, siteKey = DEFAULT_SITE_KEY
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, onVerify]);
+  }, [siteKey]); // Only re-run if siteKey changes
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', margin: '10px 0 16px 0' }}>
