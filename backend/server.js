@@ -272,30 +272,6 @@ app.get('/api/payment/provider', (req, res) => {
     res.json({ provider: isTrybit ? 'trybit' : 'manual' });
 });
 
-app.post('/api/register', async (req, res) => {
-    const { name, email, password, captchaToken } = req.body;
-    
-    if (!captchaToken) return res.status(400).json({ error: 'Security verification required' });
-    
-    try {
-        const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ error: 'Email already exists' });
-        
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        
-        const newUser = new User({ name, email, password: hashedPassword });
-        await newUser.save();
-        
-        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
-        
-        res.json({ message: 'Registration successful!', token, user: { id: newUser._id, name: newUser.name, email: newUser.email, credits: newUser.credits, twoFactorEnabled: false, joined: newUser.createdAt } });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
-
 // Rate limiting & anti-DDoS tracking for authentication endpoints
 const authRateLimits = new Map();
 const checkAuthDDoSProtection = (ip, maxAttempts = 15, windowMs = 60000) => {
@@ -318,6 +294,83 @@ setInterval(() => {
     }
 }, 300000);
 
+// Cloudflare Turnstile Verification Helper
+const verifyCloudflareTurnstile = async (token, remoteIp) => {
+    if (!token) return false;
+    if (process.env.NODE_ENV === 'test') return true;
+
+    try {
+        let secretKey = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
+        if (!secretKey) {
+            const settings = await Settings.findOne();
+            secretKey = settings?.cloudflareTurnstileSecretKey || '0x4AAAAAAFb0yQfC7pfI_WtG5U0Mz7AMICM';
+        }
+
+        const formData = new URLSearchParams();
+        formData.append('secret', secretKey);
+        formData.append('response', token);
+        if (remoteIp && remoteIp !== 'unknown') {
+            formData.append('remoteip', remoteIp);
+        }
+
+        const cfRes = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+        const cfData = await cfRes.json();
+        if (cfData.success) {
+            return true;
+        } else {
+            console.warn('[Cloudflare Turnstile] Verification failed:', cfData['error-codes']);
+            return false;
+        }
+    } catch (err) {
+        console.error('[Cloudflare Turnstile] Verification error:', err);
+        return false;
+    }
+};
+
+app.get('/api/turnstile/sitekey', (req, res) => {
+    res.json({ siteKey: process.env.CLOUDFLARE_TURNSTILE_SITE_KEY || '0x4AAAAAAFb0ySx4rhyVgHkM' });
+});
+
+app.post('/api/register', async (req, res) => {
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    if (!checkAuthDDoSProtection(clientIp, 15, 60000)) {
+        return res.status(429).json({ error: 'Too many attempts. Anti-DDoS protection active. Please try again in 1 minute.' });
+    }
+
+    const { name, email, password, captchaToken } = req.body;
+    
+    if (!captchaToken) return res.status(400).json({ error: 'Security verification required. Please complete Cloudflare verification.' });
+
+    const isCaptchaValid = await verifyCloudflareTurnstile(captchaToken, clientIp);
+    if (!isCaptchaValid) {
+        return res.status(400).json({ error: 'Cloudflare verification failed or expired. Please verify again.' });
+    }
+    
+    try {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) return res.status(400).json({ error: 'Email already exists' });
+        
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        
+        const newUser = new User({ name, email, password: hashedPassword });
+        await newUser.save();
+        
+        const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
+        
+        res.json({ message: 'Registration successful!', token, user: { id: newUser._id, name: newUser.name, email: newUser.email, credits: newUser.credits, twoFactorEnabled: false, joined: newUser.createdAt } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 app.post('/api/login', async (req, res) => {
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
     if (!checkAuthDDoSProtection(clientIp, 15, 60000)) {
@@ -325,8 +378,14 @@ app.post('/api/login', async (req, res) => {
     }
 
     const { email, password, twoFactorCode, captchaToken } = req.body;
-    if (!captchaToken && !twoFactorCode) {
-        return res.status(400).json({ error: 'Security verification required. Please complete Cloudflare verification.' });
+    if (!twoFactorCode) {
+        if (!captchaToken) {
+            return res.status(400).json({ error: 'Security verification required. Please complete Cloudflare verification.' });
+        }
+        const isCaptchaValid = await verifyCloudflareTurnstile(captchaToken, clientIp);
+        if (!isCaptchaValid) {
+            return res.status(400).json({ error: 'Cloudflare verification failed or expired. Please verify again.' });
+        }
     }
 
     try {

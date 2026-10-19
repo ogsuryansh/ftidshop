@@ -22,7 +22,10 @@ const settingsSchema = new mongoose.Schema({
     enableTelegramStars: { type: Boolean, default: true },
     telegramStarsRate: { type: Number, default: 90 }, // 90 Stars = $1 USD
     telegramBotToken: { type: String, default: '' },
-    telegramBotUsername: { type: String, default: 'Shopstarsh1_bot' }
+    telegramBotUsername: { type: String, default: 'Shopstarsh1_bot' },
+    // Cloudflare Turnstile anti-bot & DDoS protection
+    cloudflareTurnstileSiteKey: { type: String, default: '0x4AAAAAAFb0ySx4rhyVgHkM' },
+    cloudflareTurnstileSecretKey: { type: String, default: '0x4AAAAAAFb0yQfC7pfI_WtG5U0Mz7AMICM' }
 }, { timestamps: true });
 
 module.exports = mongoose.model('Settings', settingsSchema);

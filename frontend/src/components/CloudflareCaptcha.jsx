@@ -1,100 +1,107 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
-export default function CloudflareCaptcha({ onVerify }) {
-  const [status, setStatus] = useState('idle'); // idle | verifying | success
+const DEFAULT_SITE_KEY = '0x4AAAAAAFb0ySx4rhyVgHkM';
 
-  const handleClick = () => {
-    if (status !== 'idle') return;
-    setStatus('verifying');
-    setTimeout(() => {
-      setStatus('success');
-      if (onVerify) {
-        onVerify('cf_turnstile_sec_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9));
+export default function CloudflareCaptcha({ onVerify, siteKey = DEFAULT_SITE_KEY }) {
+  const containerRef = useRef(null);
+  const widgetIdRef = useRef(null);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const renderWidget = () => {
+      if (!isMounted || !containerRef.current || !window.turnstile) return;
+
+      // Clean up previous instance if any
+      if (widgetIdRef.current !== null) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch (e) {}
+        widgetIdRef.current = null;
       }
-    }, 1200);
-  };
+
+      try {
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          sitekey: siteKey,
+          theme: 'dark',
+          size: 'normal',
+          callback: (token) => {
+            if (isMounted && onVerify) {
+              onVerify(token);
+            }
+          },
+          'expired-callback': () => {
+            if (isMounted && onVerify) {
+              onVerify(null);
+            }
+          },
+          'error-callback': (code) => {
+            console.error('[Cloudflare Turnstile] Error code:', code);
+            if (isMounted) setLoadError(true);
+          }
+        });
+      } catch (err) {
+        console.error('[Cloudflare Turnstile] Render error:', err);
+      }
+    };
+
+    if (window.turnstile) {
+      renderWidget();
+    } else {
+      // Check if script exists or inject it
+      const existingScript = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
+      if (!existingScript) {
+        const script = document.createElement('script');
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          if (isMounted && window.turnstile) renderWidget();
+        };
+        script.onerror = () => {
+          if (isMounted) setLoadError(true);
+        };
+        document.head.appendChild(script);
+      } else {
+        const interval = setInterval(() => {
+          if (window.turnstile) {
+            clearInterval(interval);
+            if (isMounted) renderWidget();
+          }
+        }, 150);
+        return () => clearInterval(interval);
+      }
+    }
+
+    return () => {
+      isMounted = false;
+      if (widgetIdRef.current !== null && window.turnstile) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch (e) {}
+        widgetIdRef.current = null;
+      }
+    };
+  }, [siteKey, onVerify]);
 
   return (
-    <div
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleClick(); }}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 16px',
-        backgroundColor: '#0b0f17',
-        border: status === 'success' ? '1px solid rgba(40, 167, 69, 0.5)' : '1px solid #334155',
-        borderRadius: '10px',
-        cursor: status === 'idle' ? 'pointer' : 'default',
-        width: '100%',
-        maxWidth: '360px',
-        margin: '0 auto 20px auto',
-        boxSizing: 'border-box',
-        userSelect: 'none',
-        boxShadow: status === 'success' ? '0 0 15px rgba(40, 167, 69, 0.15)' : '0 2px 8px rgba(0,0,0,0.3)',
-        transition: 'all 0.25s ease'
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        {/* Checkbox / Spinner / Checkmark */}
-        <div
-          style={{
-            width: '26px',
-            height: '26px',
-            borderRadius: '6px',
-            border: status === 'success' ? 'none' : '2px solid #64748b',
-            backgroundColor: status === 'success' ? '#10b981' : (status === 'verifying' ? 'rgba(243, 128, 32, 0.1)' : '#1e293b'),
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s ease',
-            flexShrink: 0
-          }}
-        >
-          {status === 'verifying' && (
-            <div
-              style={{
-                width: '14px',
-                height: '14px',
-                border: '2px solid rgba(243, 128, 32, 0.3)',
-                borderTopColor: '#f38020',
-                borderRadius: '50%',
-                animation: 'cfSpin 0.8s linear infinite'
-              }}
-            />
-          )}
-          {status === 'success' && (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          )}
-        </div>
-
-        <span style={{ color: status === 'success' ? '#4ade80' : '#f1f5f9', fontSize: '14px', fontWeight: '500' }}>
-          {status === 'success' ? 'Success' : (status === 'verifying' ? 'Verifying...' : 'Verify you are human')}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', margin: '10px 0 16px 0' }}>
+      <div
+        ref={containerRef}
+        style={{
+          minHeight: '65px',
+          minWidth: '300px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}
+      />
+      {loadError && (
+        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px' }}>
+          Security check failed to load. Please check your network connection.
         </span>
-      </div>
-
-      {/* Cloudflare Branding */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingLeft: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <i className="bx bxl-cloudflare" style={{ color: '#f38020', fontSize: '22px' }}></i>
-        </div>
-        <span style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.5px' }}>CLOUDFLARE</span>
-        <div style={{ fontSize: '8px', color: '#64748b', marginTop: '2px' }}>
-          Privacy • Terms
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes cfSpin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
+      )}
     </div>
   );
 }
