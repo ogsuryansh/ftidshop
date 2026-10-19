@@ -1,69 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
-
-const LoadingCaptcha = ({ onVerify }) => {
-  const [status, setStatus] = useState('idle'); // idle, loading, success
-
-  const handleClick = () => {
-    if (status !== 'idle') return;
-    setStatus('loading');
-    setTimeout(() => {
-      setStatus('success');
-      onVerify('fake_cloudflare_token_' + Date.now());
-    }, 1500);
-  };
-
-  return (
-    <div 
-      onClick={handleClick}
-      style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        padding: '10px 15px', 
-        backgroundColor: '#222', 
-        border: '1px solid #444', 
-        borderRadius: '8px',
-        cursor: status === 'idle' ? 'pointer' : 'default',
-        width: '300px',
-        marginBottom: '20px'
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-        <div style={{
-          width: '24px', 
-          height: '24px', 
-          borderRadius: '4px',
-          border: status === 'success' ? 'none' : '2px solid #555',
-          backgroundColor: status === 'success' ? '#28a745' : 'transparent',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative'
-        }}>
-          {status === 'loading' && (
-            <div style={{
-              width: '14px', height: '14px', border: '2px solid transparent',
-              borderTopColor: '#007bff', borderRadius: '50%', animation: 'spin 1s linear infinite'
-            }} />
-          )}
-          {status === 'success' && (
-            <i className='bx bx-check' style={{ color: '#fff', fontSize: '18px' }}></i>
-          )}
-        </div>
-        <span style={{ color: '#ccc', fontSize: '14px' }}>Verify you are human</span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <i className='bx bxl-cloudflare' style={{ color: '#f38020', fontSize: '20px' }}></i>
-        <span style={{ fontSize: '9px', color: '#666' }}>Privacy - Terms</span>
-      </div>
-      <style>{`
-        @keyframes spin { 100% { transform: rotate(360deg); } }
-      `}</style>
-    </div>
-  );
-};
+import CloudflareCaptcha from '../components/CloudflareCaptcha';
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -208,14 +146,8 @@ export default function SignUp() {
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-            {!captchaToken ? (
-              <LoadingCaptcha onVerify={(token) => setCaptchaToken(token)} />
-            ) : (
-              <div style={{ padding: '10px 15px', backgroundColor: 'rgba(40, 167, 69, 0.1)', border: '1px solid rgba(40, 167, 69, 0.3)', borderRadius: '8px', color: '#4ade80', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', width: '300px', justifyContent: 'center' }}>
-                <i className='bx bx-check-circle' style={{ fontSize: '18px' }}></i> Verification complete
-              </div>
-            )}
+          <div style={{ marginBottom: '20px' }}>
+            <CloudflareCaptcha onVerify={(token) => setCaptchaToken(token)} />
           </div>
           
           {/* Submit Button */}

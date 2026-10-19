@@ -296,8 +296,39 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
+// Rate limiting & anti-DDoS tracking for authentication endpoints
+const authRateLimits = new Map();
+const checkAuthDDoSProtection = (ip, maxAttempts = 15, windowMs = 60000) => {
+    const now = Date.now();
+    const record = authRateLimits.get(ip) || { count: 0, resetTime: now + windowMs };
+    if (now > record.resetTime) {
+        record.count = 1;
+        record.resetTime = now + windowMs;
+    } else {
+        record.count += 1;
+    }
+    authRateLimits.set(ip, record);
+    return record.count <= maxAttempts;
+};
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, rec] of authRateLimits.entries()) {
+        if (now > rec.resetTime) authRateLimits.delete(ip);
+    }
+}, 300000);
+
 app.post('/api/login', async (req, res) => {
-    const { email, password, twoFactorCode } = req.body;
+    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    if (!checkAuthDDoSProtection(clientIp, 15, 60000)) {
+        return res.status(429).json({ error: 'Too many login attempts. Anti-DDoS protection active. Please try again in 1 minute.' });
+    }
+
+    const { email, password, twoFactorCode, captchaToken } = req.body;
+    if (!captchaToken && !twoFactorCode) {
+        return res.status(400).json({ error: 'Security verification required. Please complete Cloudflare verification.' });
+    }
+
     try {
         const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ error: 'Invalid credentials' });
@@ -1113,7 +1144,7 @@ app.post('/api/payment/telegram-stars-invoice', async (req, res) => {
                 return res.json({ paid: true, order: targetOrder });
             }
             finalPrice = targetOrder.price;
-            finalTitle = targetOrder.name ? `Order #${targetOrder._id.toString().slice(-6)} - ${targetOrder.name}` : `FTID Order #${targetOrder._id.toString().slice(-6)}`;
+            finalTitle = targetOrder.name ? `Order #${targetOrder._id.toString().slice(-6)} - ${targetOrder.name}` : `FT!d Order #${targetOrder._id.toString().slice(-6)}`;
             finalDesc = `Payment of ${Math.round(finalPrice * 90)} Stars ($${finalPrice.toFixed(2)} USD)`;
             finalUserId = targetOrder.userId;
         }
@@ -1126,7 +1157,7 @@ app.post('/api/payment/telegram-stars-invoice', async (req, res) => {
 
         const result = await telegramBot.createStarsInvoice({
             orderId: effectiveOrderId,
-            title: finalTitle || 'FTID Shop Order',
+            title: finalTitle || 'FT!d Shop Order',
             description: finalDesc || `Payment for order (${finalPrice.toFixed(2)} USD)`,
             priceUSD: finalPrice,
             userId: finalUserId

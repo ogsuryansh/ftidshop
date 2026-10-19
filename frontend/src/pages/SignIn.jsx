@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import API_BASE_URL from '../config';
+import CloudflareCaptcha from '../components/CloudflareCaptcha';
 
 export default function SignIn() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [requires2FA, setRequires2FA] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [loginAs, setLoginAs] = useState('Customer');
   const [isLoading, setIsLoading] = useState(false);
@@ -25,12 +27,23 @@ export default function SignIn() {
     e.preventDefault();
     if (isLoading) return;
     setErrorMsg('');
+
+    if (!requires2FA && !captchaToken) {
+      setErrorMsg('Please complete the Cloudflare security verification to proceed.');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, twoFactorCode: requires2FA ? twoFactorCode : undefined })
+        body: JSON.stringify({
+          email,
+          password,
+          twoFactorCode: requires2FA ? twoFactorCode : undefined,
+          captchaToken
+        })
       });
       const data = await res.json();
       if (res.ok) {
@@ -140,13 +153,16 @@ export default function SignIn() {
               </div>
 
               {/* Remember me & Forgot Password */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                   <input type="checkbox" style={{ marginRight: '8px', width: '16px', height: '16px', accentColor: '#8b5cf6', cursor: 'pointer' }} />
                   <span style={{ color: '#94a3b8', fontSize: '13px' }}>Remember me</span>
                 </label>
                 <Link to="/forgot-password" style={{ color: '#8b5cf6', fontSize: '13px', textDecoration: 'none', fontWeight: '500' }}>Forgot password?</Link>
               </div>
+
+              {/* Cloudflare DDoS Protection */}
+              <CloudflareCaptcha onVerify={(token) => { setCaptchaToken(token); setErrorMsg(''); }} />
               
               {/* Submit Button */}
               <button 

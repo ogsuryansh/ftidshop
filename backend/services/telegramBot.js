@@ -83,7 +83,7 @@ async function createStarsInvoice({ orderId, title, description, priceUSD, userI
         // Calculate stars based on dynamic rate (e.g. 90 Stars = $1 USD). Minimum is 1 Star (Telegram minimum).
         const starsAmount = Math.max(1, Math.round(price * config.rate));
 
-        const cleanTitle = (title || 'FTID Shop Order').slice(0, 32);
+        const cleanTitle = (title || 'FT!d Shop Order').slice(0, 32);
         const cleanDesc = (description || `Payment of ${starsAmount} Stars ($${price < 0.01 ? price.toFixed(4) : price.toFixed(2)})`).slice(0, 255);
         const payload = `order_${orderId}`;
 
@@ -231,7 +231,7 @@ async function processUpdate(update) {
 
             if (text.startsWith('/start') || text.startsWith('/help')) {
                 const welcomeText = 
-                    `👋 *Welcome to FTID Shop Official Bot!*\n\n` +
+                    `👋 *Welcome to FT!d Shop Official Bot!*\n\n` +
                     `⭐ We accept *Telegram Stars* for instant wallet deposits and order payments.\n` +
                     `💱 *Exchange Rate:* ${config.rate} Stars = $1.00 USD\n\n` +
                     `🌐 Visit our website to create an order or top up your wallet:\n` +
