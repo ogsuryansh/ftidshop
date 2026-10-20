@@ -89,8 +89,8 @@ export default function DepositModal({ onClose }) {
           </h3>
           
           <form onSubmit={handleDeposit}>
-            <div style={{ backgroundColor: 'rgba(0,0,0,0.4)', padding: '15px', borderRadius: '8px', borderLeft: '3px solid #7f00ff', marginBottom: '20px' }}>
-              <div style={{ fontSize: '13px', color: '#ccc', marginBottom: '8px' }}>
+            <div style={{ backgroundColor: 'rgba(0,0,0,0.4)', padding: '15px', borderRadius: '8px', borderLeft: '3px solid #7f00ff', marginBottom: '14px' }}>
+              <div style={{ fontSize: '13px', color: '#ccc', marginBottom: settings.depositBonusPercentage > 0 ? '8px' : '0' }}>
                 <strong>Minimum Deposit:</strong> ${settings.minDeposit}
               </div>
               {settings.depositBonusPercentage > 0 && (
@@ -98,6 +98,26 @@ export default function DepositModal({ onClose }) {
                   🎁 Bonus Offer: Deposit ${settings.depositBonusThreshold} or more and get a {settings.depositBonusPercentage}% bonus instantly!
                 </div>
               )}
+            </div>
+
+            {/* Deposit Approval Notice */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 14px',
+              backgroundColor: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '8px',
+              marginBottom: '18px',
+              fontSize: '12px',
+              color: '#fbbf24',
+              lineHeight: '1.45'
+            }}>
+              <i className='bx bx-time-five' style={{ fontSize: '18px', flexShrink: 0, color: '#f59e0b' }}></i>
+              <span>
+                <strong>Please Note:</strong> Blockchain deposits take time to confirm. Funds will be verified and added to your wallet within <strong>30 minutes</strong>.
+              </span>
             </div>
 
             <label style={{ display: 'block', fontSize: '13px', color: '#ccc', marginBottom: '8px' }}>Deposit Amount (USD)</label>

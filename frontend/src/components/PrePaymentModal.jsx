@@ -622,8 +622,19 @@ function PrePaymentModal({ orderData, apiBase, onClose, onPaymentConfirmed }) {
                   </div>
                 )}
 
-                <div style={{ fontSize: '10px', color: '#8a94a6', lineHeight: '1.4', marginBottom: '14px', padding: '8px 10px', borderRadius: '8px', borderLeft: '3px solid #00f2fe', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                <div style={{ fontSize: '11px', color: '#8a94a6', lineHeight: '1.45', marginBottom: '10px', padding: '8px 10px', borderRadius: '8px', borderLeft: '3px solid #00f2fe', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                   📌 Send exact amount of <strong>{cryptoAmount ? `${cryptoAmount} ${selectedCrypto}` : `$${Number(orderData.price).toFixed(2)} USD`}</strong> (${Number(orderData.price).toFixed(2)} USD). Your order will be placed automatically after blockchain confirms.
+                </div>
+
+                {/* 30-Minute Processing Notice */}
+                <div style={{
+                  fontSize: '11px', color: '#fbbf24', lineHeight: '1.4',
+                  marginBottom: '14px', backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.25)',
+                  display: 'flex', alignItems: 'center', gap: '8px'
+                }}>
+                  <i className='bx bx-time-five' style={{ fontSize: '16px', color: '#f59e0b', flexShrink: 0 }}></i>
+                  <span><strong>Please Note:</strong> Blockchain network confirmations take time. Your deposit will be approved & credited to your wallet within <strong>30 minutes</strong>.</span>
                 </div>
 
                 <button type="button" onClick={startPolling} disabled={checkStatus === 'checking' || !displayAddress} style={{
