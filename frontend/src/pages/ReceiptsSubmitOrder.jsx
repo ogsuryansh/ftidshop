@@ -148,8 +148,8 @@ export default function ReceiptsSubmitOrder() {
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Category</label>
-          <select value={category} onChange={e => setCategory(e.target.value)} required style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', boxSizing: 'border-box', outline: 'none' }}>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>Category</label>
+          <select value={category} onChange={e => setCategory(e.target.value)} required style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#14171e', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', boxSizing: 'border-box', outline: 'none', cursor: 'pointer', fontSize: '15px' }}>
             <option value="">Select category</option>
             <option value="United States Receipt">United States Receipt ($15)</option>
             <option value="Canada Receipt">Canada Receipt ($15)</option>
@@ -159,8 +159,8 @@ export default function ReceiptsSubmitOrder() {
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Order Details / Note</label>
-          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Provide store name, items, date, or specific receipt notes" rows="4" style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }}></textarea>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>Order Details / Note</label>
+          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Provide store name, items, date, or specific receipt notes" rows="3" style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#14171e', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }}></textarea>
         </div>
 
         <div>
@@ -223,37 +223,75 @@ export default function ReceiptsSubmitOrder() {
 
         {/* Payment Method */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Payment Method</label>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', cursor: 'pointer' }}>
+          <label style={{ display: 'block', marginBottom: '10px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>Payment Method</label>
+          <div className="payment_method_grid">
+            <div 
+              onClick={() => setPaymentMethod('Crypto')}
+              className={`payment_choice_card ${paymentMethod === 'Crypto' ? 'active' : ''}`}
+            >
               <input 
                 type="radio" 
                 name="paymentMethod" 
                 value="Crypto" 
                 checked={paymentMethod === 'Crypto'} 
-                onChange={e => setPaymentMethod(e.target.value)} 
+                onChange={() => setPaymentMethod('Crypto')} 
               />
-              Crypto Payment (Manual)
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', cursor: 'pointer' }}>
+              <div>
+                <div className="choice_title">Crypto Payment</div>
+                <div className="choice_sub">BTC, LTC, Stars, USDT, SOL, ETH, TON</div>
+              </div>
+            </div>
+
+            <div 
+              onClick={() => {
+                if (user && user.credits >= currentTotalPrice && category) {
+                  setPaymentMethod('Wallet Balance');
+                }
+              }}
+              className={`payment_choice_card ${paymentMethod === 'Wallet Balance' ? 'active' : ''} ${(!user || user.credits < currentTotalPrice || !category) ? 'disabled' : ''}`}
+            >
               <input 
                 type="radio" 
                 name="paymentMethod" 
                 value="Wallet Balance" 
                 checked={paymentMethod === 'Wallet Balance'} 
-                onChange={e => setPaymentMethod(e.target.value)} 
+                onChange={() => {
+                  if (user && user.credits >= currentTotalPrice && category) {
+                    setPaymentMethod('Wallet Balance');
+                  }
+                }} 
                 disabled={!user || user.credits < currentTotalPrice || !category}
               />
-              Wallet Balance (${user ? user.credits : 0} available)
-            </label>
+              <div>
+                <div className="choice_title">Wallet Balance</div>
+                <div className="choice_sub">${user ? user.credits : 0} available</div>
+              </div>
+            </div>
           </div>
           {paymentMethod === 'Wallet Balance' && user && user.credits < currentTotalPrice && category && (
-            <div style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '5px' }}>Insufficient balance. Please deposit funds first.</div>
+            <div style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '8px' }}>Insufficient balance. Please deposit funds first.</div>
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <button type="submit" disabled={submitting || !category || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)} style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: (submitting || !category || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)) ? 0.7 : 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
+          <button 
+            type="submit" 
+            disabled={submitting || !category || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)} 
+            style={{ 
+              background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', 
+              color: '#fff', 
+              border: 'none', 
+              padding: '14px 32px', 
+              borderRadius: '30px', 
+              fontWeight: '700', 
+              cursor: 'pointer', 
+              fontSize: '15px',
+              width: '100%',
+              maxWidth: '420px',
+              boxShadow: '0 4px 20px rgba(0, 242, 254, 0.3)',
+              opacity: (submitting || !category || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)) ? 0.7 : 1 
+            }}
+          >
             {submitting ? 'Submitting...' : (category ? `Create Order & Pay ($${currentTotalPrice})` : 'Create Order & Pay')}
           </button>
         </div>

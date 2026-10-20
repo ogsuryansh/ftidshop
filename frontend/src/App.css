@@ -803,6 +803,172 @@
   color: #00f2fe;
 }
 
+/* Mobile Drawer Backdrop */
+.sidebar_mobile_backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 998;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Order Method Cards */
+.order_methods_list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order_method_card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.order_method_card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(0, 242, 254, 0.35);
+  transform: translateY(-1px);
+}
+
+.order_method_card.selected {
+  background: rgba(0, 242, 254, 0.08);
+  border-color: #00f2fe;
+  box-shadow: 0 4px 18px rgba(0, 242, 254, 0.15);
+}
+
+.method_card_main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.method_card_left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.method_radio {
+  accent-color: #00f2fe;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.method_name {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.method_price_tag {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.method_badge_row {
+  display: flex;
+  align-items: center;
+  padding-left: 30px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.method_badge_pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.35;
+}
+
+.method_badge_pill:hover {
+  filter: brightness(1.2);
+}
+
+/* Payment Method Selection Cards */
+.payment_method_grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.payment_choice_card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.payment_choice_card:hover:not(.disabled) {
+  border-color: rgba(0, 242, 254, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.payment_choice_card.active {
+  background: rgba(0, 242, 254, 0.08);
+  border-color: #00f2fe;
+  box-shadow: 0 4px 15px rgba(0, 242, 254, 0.12);
+}
+
+.payment_choice_card.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.payment_choice_card input[type="radio"] {
+  accent-color: #00f2fe;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.choice_title {
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.choice_sub {
+  color: #94a3b8;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
 /* Mobile Dashboard Breakpoints */
 @media (max-width: 900px) {
   .sidebar_toggle_btn {
@@ -811,11 +977,12 @@
 
   .dashboard_sidebar {
     position: fixed;
-    top: 65px;
+    top: 0;
     left: -280px;
-    height: calc(100vh - 65px);
+    height: 100vh;
     z-index: 999;
-    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.6);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.7);
+    padding-top: 24px;
   }
 
   .dashboard_sidebar.mobile_open {
@@ -823,7 +990,7 @@
   }
 
   .dashboard_main_content {
-    padding: 20px 16px;
+    padding: 20px 16px 120px 16px !important;
   }
 
   .profile_header_card {
@@ -838,6 +1005,91 @@
 
   .details_grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard_topbar {
+    padding: 10px 12px !important;
+  }
+
+  .topbar_left {
+    gap: 8px !important;
+  }
+
+  .topbar_left .brand_logo_img {
+    height: 26px !important;
+  }
+
+  .sidebar_toggle_btn {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 20px !important;
+  }
+
+  .topbar_right {
+    gap: 6px !important;
+  }
+
+  .wallet_badge {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    gap: 5px !important;
+  }
+
+  .wallet_badge button {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 16px !important;
+  }
+
+  .user_profile_pill {
+    padding: 2px !important;
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .user_profile_pill .user_name {
+    display: none !important;
+  }
+
+  .user_profile_pill .user_avatar {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 13px !important;
+  }
+
+  .btn_signout {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 16px !important;
+  }
+
+  .dashboard_announcement_banner {
+    padding: 10px 12px !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    margin-bottom: 20px !important;
+  }
+
+  .method_badge_row {
+    padding-left: 0 !important;
+  }
+
+  .sticky_buttons {
+    bottom: 15px !important;
+    right: 12px !important;
+    gap: 8px !important;
+  }
+
+  .sticky_buttons img {
+    width: 42px !important;
+    height: 42px !important;
+  }
+
+  /* Form control responsive sizing - prevents iOS Safari automatic zoom on focus */
+  select, input[type="text"], input[type="password"], input[type="email"], textarea {
+    font-size: 16px !important;
   }
 }
 

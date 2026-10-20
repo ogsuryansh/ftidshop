@@ -229,12 +229,12 @@ export default function FtidSubmitOrder() {
         
         {/* Country Dropdown */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Country / Category</label>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>Country / Category</label>
           <select 
             value={country} 
             onChange={e => setCountry(e.target.value)} 
             required 
-            style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }}
+            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#14171e', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', boxSizing: 'border-box', outline: 'none', cursor: 'pointer', fontSize: '15px' }}
           >
             {Object.keys(countryConfigs).map(c => (
               <option key={c} value={c}>{c}</option>
@@ -244,12 +244,12 @@ export default function FtidSubmitOrder() {
 
         {/* Courier Dropdown */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Courier</label>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>Courier</label>
           <select 
             value={courier} 
             onChange={e => setCourier(e.target.value)} 
             required 
-            style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', boxSizing: 'border-box', outline: 'none', cursor: 'pointer' }}
+            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#14171e', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', boxSizing: 'border-box', outline: 'none', cursor: 'pointer', fontSize: '15px' }}
           >
             {currentConfig.couriers.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -259,44 +259,55 @@ export default function FtidSubmitOrder() {
 
         {/* Methods Selection */}
         <div>
-          <label style={{ display: 'block', marginBottom: '12px', color: '#ccc', fontSize: '14px' }}>Methods</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '10px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>Select Method</label>
+          <div className="order_methods_list">
             {availableMethods.length > 0 ? (
               availableMethods.map((m) => (
-                <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <label style={{ color: '#ccc', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                    <input 
-                      type="radio" 
-                      name="method" 
-                      value={m.name} 
-                      checked={method === m.name} 
-                      onChange={e => setMethod(e.target.value)} 
-                      required 
-                    /> 
-                    <span>{m.name}</span>
-                    <strong style={{ color: '#4caf50', marginLeft: '4px' }}>{m.price}$</strong>
-                  </label>
+                <div 
+                  key={m.name} 
+                  onClick={() => setMethod(m.name)}
+                  className={`order_method_card ${method === m.name ? 'selected' : ''}`}
+                >
+                  <div className="method_card_main">
+                    <div className="method_card_left">
+                      <input 
+                        type="radio" 
+                        name="method" 
+                        value={m.name} 
+                        checked={method === m.name} 
+                        onChange={() => setMethod(m.name)} 
+                        className="method_radio"
+                        required 
+                      /> 
+                      <span className="method_name">{m.name}</span>
+                    </div>
+                    <span className="method_price_tag">${m.price}</span>
+                  </div>
 
                   {m.badge && (
-                    <span 
-                      onClick={() => setActiveDesc(m)}
-                      style={{ 
-                        backgroundColor: m.badgeColor || '#4caf50', 
-                        color: '#fff', 
-                        fontSize: '11px', 
-                        padding: '3px 8px', 
-                        borderRadius: '12px', 
-                        cursor: 'pointer',
-                        display: 'inline-block'
-                      }}
-                    >
-                      {m.badge}
-                    </span>
+                    <div className="method_badge_row">
+                      <span 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveDesc(m);
+                        }}
+                        className="method_badge_pill"
+                        style={{ 
+                          backgroundColor: m.badgeColor ? `${m.badgeColor}22` : 'rgba(239, 68, 68, 0.18)', 
+                          color: m.badgeColor || '#ff6b6b',
+                          borderColor: m.badgeColor ? `${m.badgeColor}55` : 'rgba(239, 68, 68, 0.4)'
+                        }}
+                      >
+                        <i className='bx bx-info-circle'></i> {m.badge}
+                      </span>
+                    </div>
                   )}
                 </div>
               ))
             ) : (
-              <div style={{ color: '#888', fontSize: '14px' }}>No methods available for the selected courier.</div>
+              <div style={{ color: '#888', fontSize: '14px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', textAlign: 'center' }}>
+                No methods available for the selected courier.
+              </div>
             )}
           </div>
         </div>
@@ -304,13 +315,13 @@ export default function FtidSubmitOrder() {
         {/* Tracking Number */}
         <div>
           <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Tracking number (One per line for bulk orders)</label>
-          <textarea value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} required placeholder="Your package tracking numbers" rows="3" style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}></textarea>
+          <textarea value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} required placeholder="Your package tracking numbers" rows="3" style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#14171e', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}></textarea>
         </div>
 
         {/* Note */}
         <div>
           <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Note</label>
-          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional notes for this order" rows="4" style={{ width: '100%', padding: '12px', borderRadius: '6px', backgroundColor: '#1a1a1a', border: '1px solid #333', color: '#fff', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }}></textarea>
+          <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Optional notes for this order" rows="3" style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#14171e', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', boxSizing: 'border-box', resize: 'vertical', outline: 'none' }}></textarea>
         </div>
 
         {/* File Upload */}
@@ -374,37 +385,75 @@ export default function FtidSubmitOrder() {
 
         {/* Payment Method */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Payment Method</label>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', cursor: 'pointer' }}>
+          <label style={{ display: 'block', marginBottom: '10px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>Payment Method</label>
+          <div className="payment_method_grid">
+            <div 
+              onClick={() => setPaymentMethod('Crypto')}
+              className={`payment_choice_card ${paymentMethod === 'Crypto' ? 'active' : ''}`}
+            >
               <input 
                 type="radio" 
                 name="paymentMethod" 
                 value="Crypto" 
                 checked={paymentMethod === 'Crypto'} 
-                onChange={e => setPaymentMethod(e.target.value)} 
+                onChange={() => setPaymentMethod('Crypto')} 
               />
-              Crypto Payment (Manual)
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fff', cursor: 'pointer' }}>
+              <div>
+                <div className="choice_title">Crypto Payment</div>
+                <div className="choice_sub">BTC, LTC, Stars, USDT, SOL, ETH, TON</div>
+              </div>
+            </div>
+
+            <div 
+              onClick={() => {
+                if (user && user.credits >= currentTotalPrice) {
+                  setPaymentMethod('Wallet Balance');
+                }
+              }}
+              className={`payment_choice_card ${paymentMethod === 'Wallet Balance' ? 'active' : ''} ${(!user || user.credits < currentTotalPrice) ? 'disabled' : ''}`}
+            >
               <input 
                 type="radio" 
                 name="paymentMethod" 
                 value="Wallet Balance" 
                 checked={paymentMethod === 'Wallet Balance'} 
-                onChange={e => setPaymentMethod(e.target.value)} 
+                onChange={() => {
+                  if (user && user.credits >= currentTotalPrice) {
+                    setPaymentMethod('Wallet Balance');
+                  }
+                }} 
                 disabled={!user || user.credits < currentTotalPrice}
               />
-              Wallet Balance (${user ? user.credits : 0} available)
-            </label>
+              <div>
+                <div className="choice_title">Wallet Balance</div>
+                <div className="choice_sub">${user ? user.credits : 0} available</div>
+              </div>
+            </div>
           </div>
           {paymentMethod === 'Wallet Balance' && user && user.credits < currentTotalPrice && (
-            <div style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '5px' }}>Insufficient balance. Please deposit funds first.</div>
+            <div style={{ color: '#ff4d4d', fontSize: '12px', marginTop: '8px' }}>Insufficient balance. Please deposit funds first.</div>
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-          <button type="submit" disabled={submitting || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)} style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', color: '#fff', border: 'none', padding: '12px 40px', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', opacity: (submitting || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)) ? 0.7 : 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
+          <button 
+            type="submit" 
+            disabled={submitting || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)} 
+            style={{ 
+              background: 'linear-gradient(135deg, #00f2fe 0%, #7f00ff 100%)', 
+              color: '#fff', 
+              border: 'none', 
+              padding: '14px 32px', 
+              borderRadius: '30px', 
+              fontWeight: '700', 
+              cursor: 'pointer', 
+              fontSize: '15px',
+              width: '100%',
+              maxWidth: '420px',
+              boxShadow: '0 4px 20px rgba(0, 242, 254, 0.3)',
+              opacity: (submitting || (paymentMethod === 'Wallet Balance' && user.credits < currentTotalPrice)) ? 0.7 : 1 
+            }}
+          >
             {submitting ? 'Submitting...' : `Create Order & Pay ($${currentTotalPrice})`}
           </button>
         </div>

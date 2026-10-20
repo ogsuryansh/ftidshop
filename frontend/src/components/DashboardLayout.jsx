@@ -102,6 +102,15 @@ export default function DashboardLayout() {
         </div>
       </header>
 
+      {/* Mobile Drawer Backdrop */}
+      {mobileSidebarOpen && (
+        <div 
+          className="sidebar_mobile_backdrop" 
+          onClick={() => setMobileSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       <div className="dashboard_body">
         {/* Sidebar */}
         <aside className={`dashboard_sidebar ${mobileSidebarOpen ? 'mobile_open' : ''}`}>
