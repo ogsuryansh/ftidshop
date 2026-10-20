@@ -818,15 +818,17 @@
 .order_methods_list {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 8px;
 }
 
 .order_method_item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 8px 12px;
+  width: fit-content;
+  max-width: 100%;
+  gap: 8px;
+  padding: 6px 12px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
@@ -841,7 +843,7 @@
 }
 
 .order_method_item.selected {
-  background: rgba(0, 242, 254, 0.06);
+  background: rgba(0, 242, 254, 0.07);
   border-color: rgba(0, 242, 254, 0.6);
 }
 
