@@ -314,8 +314,16 @@ export default function FtidSubmitOrder() {
 
         {/* Tracking Number */}
         <div>
-          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Tracking number (One per line for bulk orders)</label>
-          <textarea value={trackingNumber} onChange={e => setTrackingNumber(e.target.value)} required placeholder="Your package tracking numbers" rows="3" style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#14171e', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}></textarea>
+          <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>
+            Tracking number <span style={{ color: '#94a3b8', fontWeight: '400' }}>(Optional - one per line for bulk orders)</span>
+          </label>
+          <textarea 
+            value={trackingNumber} 
+            onChange={e => setTrackingNumber(e.target.value)} 
+            placeholder="Your package tracking numbers (optional)" 
+            rows="3" 
+            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', backgroundColor: '#14171e', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }}
+          ></textarea>
         </div>
 
         {/* Note */}
