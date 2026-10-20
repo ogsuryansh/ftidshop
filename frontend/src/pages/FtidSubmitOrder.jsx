@@ -8,7 +8,7 @@ import { useSyncUser, setStoredUser, fetchLatestUserData } from '../utils/userSy
 export default function FtidSubmitOrder() {
   const [country, setCountry] = useState('United States US');
   const [courier, setCourier] = useState('UPS');
-  const [method, setMethod] = useState('');
+  const [method, setMethod] = useState('FTID');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [note, setNote] = useState('');
   const [fileData, setFileData] = useState(null);
@@ -22,7 +22,14 @@ export default function FtidSubmitOrder() {
 
   const [user, setUser] = useSyncUser();
 
-  const [dbProducts, setDbProducts] = useState([]);
+  const [dbProducts, setDbProducts] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cached_ftid_products');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/products`, { cache: 'no-store' })
@@ -30,47 +37,57 @@ export default function FtidSubmitOrder() {
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           setDbProducts(data);
+          try {
+            localStorage.setItem('cached_ftid_products', JSON.stringify(data));
+          } catch (e) {}
         }
       })
       .catch(err => console.error("Error loading products:", err));
   }, []);
 
-  // Default fallback configuration for Couriers & Methods per Country
+  // Default initial configuration for Couriers & Methods per Country matching database products
   const defaultCountryConfigs = {
-    'Insider Scans "Only tracking needed"': {
-      couriers: ['UPS', 'FedEx', 'USPS'],
-      methods: [
-        { name: 'Rts insider city/any state', price: 70, desc: 'RTS Insider scan update for any city or state.', badge: null, courier: 'UPS' },
-        { name: 'Ap lit ups any city', price: 25, desc: 'AP LIT UPS scan update for any city.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' },
-        { name: 'Fedex driver lit', price: 80, desc: 'FedEx Driver Lost In Transit scan update.', badge: null, courier: 'FedEx' },
-        { name: 'ap lit worldwide', price: 25, desc: 'Worldwide Access Point LIT service for international tracking.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' },
-        { name: 'manual rts', price: 35, desc: 'Manual Return To Sender scan service.', badge: null, courier: 'UPS' }
-      ]
-    },
     'United States US': {
       couriers: ['UPS', 'FedEx', 'USPS'],
       methods: [
-        { name: 'Cali LIT (Very Limited)', price: 45, desc: 'Specialized Lost In Transit method for California region shipments with high success rate.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' },
-        { name: 'UPS UTD (must be in transit = yes)', price: 60, desc: 'Unable To Deliver scan update for active UPS packages currently in transit.', badge: null, courier: 'UPS' },
-        { name: 'UPS RTS', price: 60, desc: 'Return To Sender scan process for UPS packages.', badge: null, courier: 'UPS' },
-        { name: 'UPS LIT Store', price: 45, desc: 'Lost In Transit method performed via physical UPS Store dropoffs.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' },
-        { name: 'AP LIT WORLDWIDE', price: 30, desc: 'Worldwide Access Point LIT service for international UPS tracking.', badge: 'Click to read description', badgeColor: '#d9534f', courier: 'UPS' }
+        { name: 'FTID', price: 8, desc: '', badge: 'Return Label Required', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'FTIDNA', price: 20, desc: 'Only tracking required works on incoming packages', badge: 'Click here to check description', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'ONLY EDIT', price: 6, desc: '', badge: 'Label required', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'RECEIPT+FTID', price: 20, desc: '', badge: 'ORIGINAL RECEIPT', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'RTS + FTIDNA', price: 45, desc: 'Package gonna show returned to different location.', badge: 'Package gonna show returned to different location', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'RTS + UTD', price: 45, desc: 'RTS + UTD will delete POD and lock track', badge: 'RTS + UTD will delete POD and lock track', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'UNTRACEABLE LABEL', price: 10, desc: '', badge: 'Label have both UPS and USPS label/TRACKING', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'UPS AP LIT', price: 30, desc: '', badge: 'Any state for your choice it is done on return label', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'UTD UPS', price: 60, desc: 'Can be done incoming and outgoing. PROOF OF DELIVERY (POD) never show for incoming tracks', badge: 'Can be done incoming and outgoing. PROOF OF DELIVERY (POD) never show for incoming tracks', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'FTID', price: 8, desc: '', badge: 'RETURN LABEL REQUIRED', badgeColor: '#d9534f', courier: 'FedEx' },
+        { name: 'RECEIPT+FTID', price: 20, desc: 'Printed receipt', badge: 'ORIGINAL RECEIPT', badgeColor: '#d9534f', courier: 'FedEx' },
+        { name: 'ONLY EDIT', price: 6, desc: '', badge: 'RETURN LABEL REQUIRED', badgeColor: '#d9534f', courier: 'FedEx' },
+        { name: 'FTIDNA', price: 25, desc: 'Only tracking required works on incoming packages', badge: 'Click here to check description', badgeColor: '#d9534f', courier: 'USPS' },
+        { name: 'RECEIPT+FTID', price: 20, desc: '', badge: 'ORIGINAL RECEIPT', badgeColor: '#d9534f', courier: 'USPS' },
+        { name: 'ONLY EDIT', price: 6, desc: '', badge: 'RETURN LABEL REQUIRED', badgeColor: '#d9534f', courier: 'USPS' },
+        { name: 'UNTRACEABLE TRACKING', price: 10, desc: '', badge: 'PARCEL RETURN SVC', badgeColor: '#d9534f', courier: 'USPS' }
       ]
     },
     'Canada CA': {
-      couriers: ['Canada Post', 'Purolator', 'UPS', 'FedEx', 'DHL'],
+      couriers: ['UPS', 'FedEx'],
       methods: [
-        { name: 'FTIDV3', price: 20, desc: 'FTID Version 3 processing. High speed delivery status update.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'Canada Post' },
-        { name: 'LIT', price: 35, desc: 'Lost in Transit scan update for Canadian courier shipments.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'Canada Post' },
-        { name: 'FTIDNA', price: 35, desc: 'FTID No Access / No Arrival update for Canadian carriers.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'Canada Post' }
+        { name: 'UPS AP LIT', price: 30, desc: '', badge: 'Return label required', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'ONLY EDIT', price: 6, desc: '', badge: 'RETURN LABEL REQUIRED', badgeColor: '#d9534f', courier: 'UPS' },
+        { name: 'FEDEX FTID', price: 20, desc: 'NEED RETURN LABEL', badge: 'NEED RETURN LABEL', badgeColor: '#d9534f', courier: 'FedEx' },
+        { name: 'ONLY EDIT', price: 6, desc: '', badge: 'RETURN LABEL REQUIRED', badgeColor: '#d9534f', courier: 'FedEx' }
       ]
     },
-    'Germany DE': {
-      couriers: ['DHL', 'DPD', 'GLS', 'UPS', 'Hermes', 'DHL Express'],
+    'Insider Scans "Only tracking needed"': {
+      couriers: ['USPS'],
       methods: [
-        { name: 'FTIDV3', price: 25, desc: 'FTID Version 3 processing for EU / Germany shipments.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'DHL' },
-        { name: 'LIT', price: 40, desc: 'Lost in Transit scan update for German couriers.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'DHL' },
-        { name: 'FTIDNA', price: 40, desc: 'FTID No Arrival update for European carriers.', badge: 'Label is required', badgeColor: '#4caf50', courier: 'DHL' }
+        { name: 'USPS rts', price: 50, desc: '', badge: 'Return to sender after delivery', badgeColor: '#d9534f', courier: 'USPS' },
+        { name: 'LIT', price: 20, desc: 'Tracking will show dropped off after that no movement', badge: 'Click to check description', badgeColor: '#d9534f', courier: 'USPS' }
+      ]
+    },
+    'SPAIN': {
+      couriers: ['UPS'],
+      methods: [
+        { name: 'FTID', price: 25, desc: 'RETURN LABEL REQUIRED', badge: 'RETURN LABEL REQUIRED', badgeColor: '#d9534f', courier: 'UPS' }
       ]
     }
   };
