@@ -17,7 +17,7 @@ export default function Layout() {
     <>
       <div className="bg_tertiary">
           <div className="align_center pt_2 pb_2 px_4" style={{ fontSize: '13px', lineHeight: '1.5' }}>
-              Our new Telegram account for support is <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer">@rts_www</a> / Join our new update channel by clicking <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer">here</a>
+              Our new Telegram account for support is <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer">@rts_www</a> / Join our new update channel by clicking <a href="https://t.me/+VTbJnrPNe-wzYTNh" target="_blank" rel="noopener noreferrer">here</a>
           </div>
       </div>
 
@@ -66,7 +66,12 @@ export default function Layout() {
           </div>
       </footer>
       <div className="sticky_buttons">
-          <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer"><img src="/assets/images/telegram_icon.jpg" alt="Telegram" /></a>
+          <a href="https://t.me/+VTbJnrPNe-wzYTNh" target="_blank" rel="noopener noreferrer" title="Join Telegram Channel">
+            <img src="/assets/images/telegram_icon.jpg" alt="Telegram" />
+          </a>
+          <a href="https://signal.group/#CjQKIJA5mtLKFm1j9utMG3mKT9CKFykstLW4IxbG76jBKuH_EhCNjf3qLEbisZ8Fr71s8uVd" target="_blank" rel="noopener noreferrer" title="Signal Group">
+            <img src="/assets/images/signal_icon.svg" alt="Signal" />
+          </a>
       </div>
     </>
   );

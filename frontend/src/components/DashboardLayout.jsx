@@ -158,7 +158,7 @@ export default function DashboardLayout() {
             <a href="https://t.me/+CaAi1_Ps4mE3NjZh" target="_blank" rel="noopener noreferrer" className="sidebar_link">
               <i className='bx bx-chat'></i> <span>Community Chat</span> <i className='bx bx-link-external link_icon'></i>
             </a>
-            <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer" className="sidebar_link">
+            <a href="https://t.me/+VTbJnrPNe-wzYTNh" target="_blank" rel="noopener noreferrer" className="sidebar_link">
               <i className='bx bx-news'></i> <span>News Channel</span> <i className='bx bx-link-external link_icon'></i>
             </a>
             <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer" className="sidebar_link">
@@ -173,12 +173,22 @@ export default function DashboardLayout() {
           <div className="dashboard_announcement_banner">
             <i className='bx bxs-bell-ring banner_icon'></i>
             <span>
-              <strong>NOTICE:</strong> Support is available at <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer">@rts_www</a> &nbsp;|&nbsp; Join official channel <a href="https://t.me/+WpoS6AcNJDhkODVl" target="_blank" rel="noopener noreferrer">Here <i className='bx bx-right-arrow-alt'></i></a>
+              <strong>NOTICE:</strong> Support is available at <a href="https://t.me/rts_www" target="_blank" rel="noopener noreferrer">@rts_www</a> &nbsp;|&nbsp; Join official channel <a href="https://t.me/+VTbJnrPNe-wzYTNh" target="_blank" rel="noopener noreferrer">Here <i className='bx bx-right-arrow-alt'></i></a>
             </span>
           </div>
 
           <Outlet />
         </main>
+      </div>
+
+      {/* Floating Sticky Telegram & Signal Contact Buttons */}
+      <div className="sticky_buttons">
+        <a href="https://t.me/+VTbJnrPNe-wzYTNh" target="_blank" rel="noopener noreferrer" title="Join Telegram Channel">
+          <img src="/assets/images/telegram_icon.jpg" alt="Telegram" />
+        </a>
+        <a href="https://signal.group/#CjQKIJA5mtLKFm1j9utMG3mKT9CKFykstLW4IxbG76jBKuH_EhCNjf3qLEbisZ8Fr71s8uVd" target="_blank" rel="noopener noreferrer" title="Signal Group">
+          <img src="/assets/images/signal_icon.svg" alt="Signal" />
+        </a>
       </div>
 
       {showDepositModal && <DepositModal onClose={() => setShowDepositModal(false)} />}

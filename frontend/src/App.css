@@ -1,4 +1,33 @@
-/* Cleared default Vite styles */
+/* Floating Sticky Contact Buttons */
+.sticky_buttons {
+  position: fixed;
+  width: 64px;
+  right: 18px;
+  bottom: 25px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sticky_buttons > a {
+  display: inline-block;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.sticky_buttons > a:hover {
+  transform: scale(1.08);
+  filter: brightness(1.1);
+}
+
+.sticky_buttons img {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: block;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  object-fit: cover;
+}
 
 /* Header & Navigation Layout */
 .site_header {
@@ -160,6 +189,7 @@
   .sticky_buttons {
     bottom: 15px !important;
     right: 15px !important;
+    gap: 8px !important;
   }
 
   .sticky_buttons img {
