@@ -276,53 +276,46 @@ export default function FtidSubmitOrder() {
 
         {/* Methods Selection */}
         <div>
-          <label style={{ display: 'block', marginBottom: '10px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>Select Method</label>
+          <label style={{ display: 'block', marginBottom: '10px', color: '#ccc', fontSize: '14px', fontWeight: '500' }}>Methods</label>
           <div className="order_methods_list">
             {availableMethods.length > 0 ? (
               availableMethods.map((m) => (
                 <div 
                   key={m.name} 
                   onClick={() => setMethod(m.name)}
-                  className={`order_method_card ${method === m.name ? 'selected' : ''}`}
+                  className={`order_method_item ${method === m.name ? 'selected' : ''}`}
                 >
-                  <div className="method_card_main">
-                    <div className="method_card_left">
-                      <input 
-                        type="radio" 
-                        name="method" 
-                        value={m.name} 
-                        checked={method === m.name} 
-                        onChange={() => setMethod(m.name)} 
-                        className="method_radio"
-                        required 
-                      /> 
-                      <span className="method_name">{m.name}</span>
-                    </div>
-                    <span className="method_price_tag">${m.price}</span>
-                  </div>
+                  <input 
+                    type="radio" 
+                    name="method" 
+                    value={m.name} 
+                    checked={method === m.name} 
+                    onChange={() => setMethod(m.name)} 
+                    className="method_radio"
+                    required 
+                  /> 
+                  <span className="method_name">{m.name}</span>
+                  <span className="method_price_tag">{m.price}$</span>
 
                   {m.badge && (
-                    <div className="method_badge_row">
-                      <span 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveDesc(m);
-                        }}
-                        className="method_badge_pill"
-                        style={{ 
-                          backgroundColor: m.badgeColor ? `${m.badgeColor}22` : 'rgba(239, 68, 68, 0.18)', 
-                          color: m.badgeColor || '#ff6b6b',
-                          borderColor: m.badgeColor ? `${m.badgeColor}55` : 'rgba(239, 68, 68, 0.4)'
-                        }}
-                      >
-                        <i className='bx bx-info-circle'></i> {m.badge}
-                      </span>
-                    </div>
+                    <span 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveDesc(m);
+                      }}
+                      className="method_badge_pill"
+                      style={{ 
+                        backgroundColor: m.badgeColor || '#d9534f', 
+                        color: '#fff' 
+                      }}
+                    >
+                      {m.badge}
+                    </span>
                   )}
                 </div>
               ))
             ) : (
-              <div style={{ color: '#888', fontSize: '14px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', textAlign: 'center' }}>
+              <div style={{ color: '#888', fontSize: '14px', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', textAlign: 'center' }}>
                 No methods available for the selected courier.
               </div>
             )}

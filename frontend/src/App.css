@@ -814,103 +814,72 @@
   animation: fadeIn 0.2s ease-out;
 }
 
-/* Order Method Cards */
+/* Order Method Compact Items */
 .order_methods_list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.order_method_card {
+.order_method_item {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   user-select: none;
 }
 
-.order_method_card:hover {
+.order_method_item:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(0, 242, 254, 0.35);
-  transform: translateY(-1px);
+  border-color: rgba(0, 242, 254, 0.3);
 }
 
-.order_method_card.selected {
-  background: rgba(0, 242, 254, 0.08);
-  border-color: #00f2fe;
-  box-shadow: 0 4px 18px rgba(0, 242, 254, 0.15);
-}
-
-.method_card_main {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.method_card_left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
+.order_method_item.selected {
+  background: rgba(0, 242, 254, 0.06);
+  border-color: rgba(0, 242, 254, 0.6);
 }
 
 .method_radio {
   accent-color: #00f2fe;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
-  flex-shrink: 0;
   margin: 0;
+  flex-shrink: 0;
 }
 
 .method_name {
   color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.2px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .method_price_tag {
   color: #10b981;
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  padding: 4px 10px;
-  border-radius: 8px;
   font-weight: 700;
   font-size: 14px;
-  flex-shrink: 0;
-}
-
-.method_badge_row {
-  display: flex;
-  align-items: center;
-  padding-left: 30px;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .method_badge_pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid;
-  border-radius: 8px;
-  padding: 4px 10px;
+  background-color: #d9534f;
+  color: #fff;
   font-size: 11px;
-  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  display: inline-block;
   line-height: 1.35;
+  transition: opacity 0.15s ease;
 }
 
 .method_badge_pill:hover {
-  filter: brightness(1.2);
+  opacity: 0.85;
 }
 
 /* Payment Method Selection Cards */
